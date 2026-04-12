@@ -35,6 +35,12 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
+  if (pathname === '/api/v1/auth/check-email' && request.method === 'POST') {
+    const res = NextResponse.next();
+    Object.entries(corsHeaders()).forEach(([k, v]) => res.headers.set(k, v));
+    return res;
+  }
+
   if (!supabaseUrl || !supabasePublishableKey) {
     logger.error('Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY');
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500, headers: corsHeaders() });

@@ -5,5 +5,5 @@ export function parseEmail(value: string, invalidEmailMessage: string) {
 }
 
 export function parsePassword(value: string, minLengthMessage: string) {
-  return z.string().min(12, minLengthMessage).safeParse(value);
+  return z.string().min(6, minLengthMessage).safeParse(value);
 }

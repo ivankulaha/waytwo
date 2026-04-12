@@ -10,6 +10,7 @@ import { AuthShell } from '@/components/auth/auth-shell';
 import { PrimaryButton } from '@/components/auth/primary-button';
 import { BorderRadius, FontSize, FontWeight, IconSize, Opacity, Size, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
+import { checkEmailRegistered, CheckEmailError } from '@/lib/auth-api';
 import { log } from '@/lib/log';
 import { supabase } from '@/lib/supabase';
 import { parseEmail } from '@/lib/validation';
@@ -20,18 +21,41 @@ export default function AuthEmailScreen() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [appleLoading, setAppleLoading] = useState(false);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
 
-  const onContinue = () => {
+  const onContinue = async () => {
     setError(undefined);
     const parsed = parseEmail(email, t('validation.invalidEmail'));
     if (!parsed.success) {
       setError(parsed.error.flatten().formErrors[0] ?? t('validation.invalidEmail'));
       return;
     }
-    router.push({
-      pathname: '/(auth)/password',
-      params: { email: parsed.data },
-    });
+    setEmailCheckLoading(true);
+    try {
+      const registered = await checkEmailRegistered(parsed.data);
+      if (registered) {
+        router.push({
+          pathname: '/(auth)/password',
+          params: { email: parsed.data },
+        });
+      } else {
+        router.push({
+          pathname: '/(auth)/signup',
+          params: { email: parsed.data },
+        });
+      }
+    } catch (e: unknown) {
+      if (e instanceof CheckEmailError) {
+        setError(t('auth.checkEmailFailed'));
+      } else {
+        log.error('check-email unexpected error', {
+          message: e instanceof Error ? e.message : String(e),
+        });
+        setError(t('auth.checkEmailFailed'));
+      }
+    } finally {
+      setEmailCheckLoading(false);
+    }
   };
 
   const onApple = async () => {
@@ -125,6 +149,8 @@ export default function AuthEmailScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        textContentType="emailAddress"
+        autoComplete="email"
         value={email}
         onChangeText={(v) => {
           setEmail(v);
@@ -133,7 +159,12 @@ export default function AuthEmailScreen() {
       />
       {error ? <Text style={[styles.error, { color: c.errorText }]}>{error}</Text> : null}
 
-      <PrimaryButton label={t('auth.continue')} onPress={onContinue} disabled={!canSubmit} />
+      <PrimaryButton
+        label={t('auth.continue')}
+        onPress={() => void onContinue()}
+        disabled={!canSubmit}
+        loading={emailCheckLoading}
+      />
     </AuthShell>
   );
 }

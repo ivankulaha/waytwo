@@ -5,6 +5,8 @@
   "scripts": {
     "postinstall": "patch-package",
     "start": "expo start",
+    "start:emulator": "node ./scripts/expo-start-with-api-host.js emulator",
+    "start:device": "node ./scripts/expo-start-with-api-host.js device",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

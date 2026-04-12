@@ -79,6 +79,8 @@ export default function AuthForgotPasswordScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        textContentType="emailAddress"
+        autoComplete="email"
         value={email}
         onChangeText={(v) => {
           setEmail(v);

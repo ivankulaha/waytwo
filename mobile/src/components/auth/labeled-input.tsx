@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BorderRadius, FontSize, IconSize, Size, Spacing } from '@/constants/tokens';
@@ -15,6 +15,9 @@ type LabeledInputProps = {
   secure?: boolean;
   editable?: boolean;
   error?: string;
+  textContentType?: TextInputProps['textContentType'];
+  autoComplete?: TextInputProps['autoComplete'];
+  importantForAutofill?: TextInputProps['importantForAutofill'];
 };
 
 export function LabeledInput({
@@ -27,6 +30,9 @@ export function LabeledInput({
   secure,
   editable = true,
   error,
+  textContentType,
+  autoComplete,
+  importantForAutofill,
 }: LabeledInputProps) {
   const c = useAuthColors();
   const [showSecret, setShowSecret] = useState(false);
@@ -55,6 +61,9 @@ export function LabeledInput({
           autoCorrect={false}
           secureTextEntry={isSecure}
           editable={editable}
+          textContentType={textContentType}
+          autoComplete={autoComplete}
+          importantForAutofill={importantForAutofill}
         />
         {secure ? (
           <Pressable

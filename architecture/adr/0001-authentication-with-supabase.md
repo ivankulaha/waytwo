@@ -22,9 +22,16 @@ WayTwo needs email/password and Sign in with Apple, password reset via deep link
 - RLS and Supabase project configuration remain mandatory for data safety.
 - Mobile and API must stay aligned on Supabase project and JWT format.
 
+## Amendment (2026-04-12)
+
+1. **Email registration check:** After the user enters a valid email (email/password flow only), the mobile app calls **`POST /api/v1/auth/check-email`** on the Next.js API with JSON `{ "email": "<string>" }`. The handler uses a **server-only** Supabase client with the **secret (service_role) JWT** and the Auth Admin API to respond `{ "registered": boolean }`. Login and sign-up **still** use Supabase directly from the app; the API does not proxy passwords.
+2. **Enumeration tradeoff:** This endpoint intentionally reveals whether an email has an Auth user. **Mitigations** (rate limiting, CAPTCHA) are deferred; see [`architecture/tech-debt.md`](../tech-debt.md).
+3. **Error messaging:** Decision §4’s “generic errors” to avoid leaking account existence applies to the **password** step and similar; the **email** step no longer hides whether an account exists once the check-email call succeeds.
+
 ## Related
 
 - Plan: `.cursor/plans/waytwo_authentication_6500aa8d.plan.md`
 - Feature: `architecture/features/authentication.md`
+- Technical debt: `architecture/tech-debt.md`
 
 **Author:** Ivan Kulaha

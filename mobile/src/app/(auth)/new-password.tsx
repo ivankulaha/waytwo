@@ -17,7 +17,7 @@ export default function AuthNewPasswordScreen() {
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
 
-  const minMsg = t('validation.minPassword12');
+  const minMsg = t('validation.minPassword6');
   const passwordCheck = useMemo(() => parsePassword(password, minMsg), [password, minMsg]);
   const inlineHint =
     password.length > 0 && !passwordCheck.success
@@ -54,6 +54,9 @@ export default function AuthNewPasswordScreen() {
         }}
         placeholder={t('auth.newPasswordPlaceholder')}
         secure
+        textContentType="newPassword"
+        autoComplete="password-new"
+        importantForAutofill="yes"
         error={inlineHint ?? error}
       />
       <PrimaryButton

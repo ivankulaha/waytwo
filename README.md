@@ -27,7 +27,7 @@ cp mobile/.env.example mobile/.env
 |----------|-------------|
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase **publishable** (public) API key — never use a **secret** or **service_role** key in the app |
-| `EXPO_PUBLIC_API_URL` | Versioned API base, e.g. `http://localhost:3000/api/v1` |
+| `EXPO_PUBLIC_API_URL` | Versioned API base, e.g. `http://localhost:3000/api/v1` — required so **Continue** after email can call `POST …/auth/check-email` (see API env for `SUPABASE_SERVICE_ROLE_KEY`) |
 
 If you still have the legacy JWT **anon** key only, you can temporarily set `EXPO_PUBLIC_SUPABASE_ANON_KEY` instead; the app accepts it until you switch to a publishable key.
 
@@ -41,7 +41,7 @@ The mobile app supports **English** and **Ukrainian** (device locale `uk` → Uk
 cp backend/api/.env.local.example backend/api/.env.local
 ```
 
-Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (same publishable key as the mobile app). Legacy `SUPABASE_ANON_KEY` still works if set. Optional: `CORS_ORIGIN` for browser or Expo web (default `http://localhost:8081`).
+Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (same publishable key as the mobile app), and **`SUPABASE_SERVICE_ROLE_KEY`** (Dashboard → **Settings → API** → **Secret** key / service_role JWT). The secret key is **server-only**; never expose it in the mobile app or `EXPO_PUBLIC_*` variables. Legacy `SUPABASE_ANON_KEY` still works for the publishable slot if set. Optional: `CORS_ORIGIN` for browser or Expo web (default `http://localhost:8081`).
 
 ## Running the API
 
@@ -56,6 +56,7 @@ docker compose -f backend/api/docker-compose.yml up --build
 The server listens on **http://localhost:3000**. Versioned routes:
 
 - `GET http://localhost:3000/api/v1/health` — public
+- `POST http://localhost:3000/api/v1/auth/check-email` — public JSON body `{ "email": "<string>" }`, response `{ "registered": boolean }` (requires `SUPABASE_SERVICE_ROLE_KEY` on the server)
 - `GET http://localhost:3000/api/v1/me` — `Authorization: Bearer <supabase_access_token>`
 - `GET http://localhost:3000/api/docs/spec` — OpenAPI 3 JSON (generated from JSDoc on route handlers)
 - `GET http://localhost:3000/api/docs` — Swagger UI (loads assets from `unpkg.com`; relaxed CSP applies only to these paths)
@@ -84,6 +85,7 @@ Press `i` for the iOS Simulator. Use a development build if you rely on native m
 
 ## Supabase dashboard checklist
 
+- **Authentication → Providers → Email:** set **minimum password length** to **6** (or lower) so it matches the mobile app validation.
 - **Authentication → Providers:** enable **Apple** if you use Sign in with Apple.
 - **Authentication → URL configuration:** add redirect URLs used by the app, e.g. the deep link from `expo-linking` for password reset (see `mobile/lib/deeplinks.ts`) and your `waytwo://` scheme.
 - **Database:** enable **Row Level Security** on user-owned tables before exposing them through the API.

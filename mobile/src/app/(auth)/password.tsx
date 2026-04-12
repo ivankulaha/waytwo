@@ -35,10 +35,7 @@ export default function AuthPasswordScreen() {
     setLoading(false);
     if (signError) {
       log.warn('signInWithPassword failed', { message: signError.message });
-      router.replace({
-        pathname: '/(auth)/signup',
-        params: { email },
-      });
+      setError(t('auth.invalidEmailOrPassword'));
       return;
     }
     router.replace('/(tabs)');
@@ -53,7 +50,15 @@ export default function AuthPasswordScreen() {
       showBack
       onBack={() => router.back()}
     >
-      <LabeledInput label={t('auth.emailLabel')} value={email} onChangeText={() => undefined} editable={false} />
+      <LabeledInput
+        label={t('auth.emailLabel')}
+        value={email}
+        onChangeText={() => undefined}
+        editable={false}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        autoComplete="email"
+      />
       <LabeledInput
         label={t('auth.passwordLabel')}
         value={password}
@@ -63,6 +68,9 @@ export default function AuthPasswordScreen() {
         }}
         placeholder={t('auth.passwordPlaceholder')}
         secure
+        textContentType="password"
+        autoComplete="current-password"
+        importantForAutofill="yes"
         error={error}
       />
       <PrimaryButton label={t('auth.continue')} onPress={onSubmit} disabled={!canSubmit} loading={loading} />

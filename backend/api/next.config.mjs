@@ -38,7 +38,12 @@ const nextConfig = {
     },
   },
   async headers() {
+    // More specific sources must come after `/:path*`: later matches override CSP for the same path.
     return [
+      {
+        source: '/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: csp }, ...securityHeaders],
+      },
       {
         source: '/api/docs',
         headers: [{ key: 'Content-Security-Policy', value: docsCsp }, ...securityHeaders],
@@ -46,10 +51,6 @@ const nextConfig = {
       {
         source: '/api/docs/:path*',
         headers: [{ key: 'Content-Security-Policy', value: docsCsp }, ...securityHeaders],
-      },
-      {
-        source: '/:path*',
-        headers: [{ key: 'Content-Security-Policy', value: csp }, ...securityHeaders],
       },
     ];
   },
