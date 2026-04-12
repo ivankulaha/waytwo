@@ -1,0 +1,91 @@
+{
+  "auth": {
+    "signInOrCreateTitle": "Увійдіть або створіть обліковий запис",
+    "signInOrCreateSubtitle": "Будьте поруч, навіть коли ви далеко.",
+    "continueWithApple": "Продовжити з Apple",
+    "or": "або",
+    "emailPlaceholder": "Електронна пошта",
+    "passwordPlaceholder": "Пароль",
+    "newPasswordPlaceholder": "Новий пароль",
+    "continue": "Продовжити",
+    "enterPasswordTitle": "Введіть пароль",
+    "createAccountTitle": "Створити обліковий запис",
+    "choosePasswordSubtitle": "Оберіть пароль, щоб продовжити.",
+    "emailLabel": "Електронна пошта",
+    "passwordLabel": "Пароль",
+    "forgotPassword": "Забули пароль?",
+    "resetPasswordTitle": "Скинути пароль",
+    "resetPasswordSubtitle": "Введіть електронну пошту. Ми надішлемо посилання, якщо обліковий запис існує.",
+    "emailSentTitle": "Лист надіслано",
+    "emailSentBody": "Якщо ця адреса зареєстрована, ми надіслали посилання для скидання. Відкрийте пошту й перейдіть за посиланням.",
+    "openMail": "Відкрити пошту",
+    "backToSignIn": "Назад до входу",
+    "createNewPasswordTitle": "Створіть новий пароль",
+    "savePassword": "Зберегти пароль",
+    "appleNoToken": "Вхід через Apple не повернув токен.",
+    "appleSignInError": "Не вдалося увійти через Apple. Спробуйте ще раз.",
+    "couldNotSendReset": "Не вдалося надіслати лист. Спробуйте ще раз.",
+    "couldNotUpdatePassword": "Не вдалося оновити пароль. Спробуйте ще раз.",
+    "couldNotCreateAccount": "Не вдалося створити обліковий запис. Спробуйте ще раз.",
+    "invalidEmailOrPassword": "Невірна електронна пошта або пароль."
+  },
+  "validation": {
+    "invalidEmail": "Введіть коректну електронну пошту.",
+    "minPassword12": "Використайте щонайменше 12 символів."
+  },
+  "tabs": {
+    "home": "Головна",
+    "explore": "Огляд"
+  },
+  "modal": {
+    "title": "Модальне вікно",
+    "screenTitle": "Це модальне вікно",
+    "goHome": "На головний екран"
+  },
+  "error": {
+    "title": "Щось пішло не так",
+    "hint": "У застосунку виникла помилка. Спробуйте ще раз або перезапустіть.",
+    "retry": "Спробувати знову"
+  },
+  "home": {
+    "title": "Головна",
+    "subtitle": "Ви увійшли. Тут згодом з’являться створення пари та онбординг.",
+    "signOut": "Вийти"
+  },
+  "explore": {
+    "title": "Огляд",
+    "intro": "У застосунку є приклади коду, щоб швидше почати.",
+    "learnMore": "Дізнатися більше",
+    "collapsible": {
+      "routing": "Маршрутизація за файлами",
+      "routingBody1": "У застосунку два екрани:",
+      "routingBody2": "та",
+      "routingBody3": "Файл макета",
+      "routingBody4": "налаштовує навігацію вкладками.",
+      "platforms": "Підтримка Android, iOS і веб",
+      "platformsBody": "Проєкт можна відкрити на Android, iOS і в вебі. Для веб-версії натисніть",
+      "platformsBodyKey": "w",
+      "platformsBodySuffix": "у терміналі, де запущено проєкт.",
+      "images": "Зображення",
+      "imagesBody": "Для статичних зображень можна використовувати суфікси",
+      "imagesBodySuffix": "щоб додати файли для різних щільностей екрана",
+      "theming": "Світла та темна тема",
+      "themingBody": "У шаблоні є підтримка світлої та темної теми. Хук",
+      "themingBodyHook": "показує поточну тему, щоб підлаштувати кольори інтерфейсу.",
+      "animations": "Анімації",
+      "animationsBody": "У шаблоні є приклад анімованого компонента.",
+      "animationsBodyMid": "використовує потужну бібліотеку",
+      "animationsBodyLib": "для анімації хвилі рукою.",
+      "animationsBodyIos": "Компонент",
+      "animationsBodyIosMid": "додає паралакс-ефект для зображення в заголовку."
+    },
+    "pathHome": "app/(tabs)/index.tsx",
+    "pathExplore": "app/(tabs)/explore.tsx",
+    "pathLayout": "app/(tabs)/_layout.tsx",
+    "pathHelloWave": "components/HelloWave.tsx",
+    "pathParallax": "components/ParallaxScrollView.tsx",
+    "suffix2x": "@2x",
+    "suffix3x": "@3x",
+    "hookName": "useColorScheme()"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "auth": {
+    "signInOrCreateTitle": "Sign in or create an account",
+    "signInOrCreateSubtitle": "Stay close, even when you are apart.",
+    "continueWithApple": "Continue with Apple",
+    "or": "or",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "newPasswordPlaceholder": "New password",
+    "continue": "Continue",
+    "enterPasswordTitle": "Enter your password",
+    "createAccountTitle": "Create account",
+    "choosePasswordSubtitle": "Choose a password to continue.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetPasswordTitle": "Reset password",
+    "resetPasswordSubtitle": "Enter your email. We will send a link if an account exists.",
+    "emailSentTitle": "Email sent",
+    "emailSentBody": "If this email is registered, a reset link has been sent. Open your mail app and follow the link.",
+    "openMail": "Open mail",
+    "backToSignIn": "Back to sign in",
+    "createNewPasswordTitle": "Create a new password",
+    "savePassword": "Save password",
+    "appleNoToken": "Sign in with Apple did not return a token.",
+    "appleSignInError": "Could not sign in with Apple. Try again.",
+    "couldNotSendReset": "Could not send reset email. Try again.",
+    "couldNotUpdatePassword": "Could not update password. Try again.",
+    "couldNotCreateAccount": "Could not create an account. Try again.",
+    "invalidEmailOrPassword": "Invalid email or password."
+  },
+  "validation": {
+    "invalidEmail": "Enter a valid email address.",
+    "minPassword12": "Use at least 12 characters."
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore"
+  },
+  "modal": {
+    "title": "Modal",
+    "screenTitle": "This is a modal",
+    "goHome": "Go to home screen"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "hint": "The app ran into a problem. You can try again or restart.",
+    "retry": "Try again"
+  },
+  "home": {
+    "title": "Home",
+    "subtitle": "You are signed in. Pairing and onboarding will live here later.",
+    "signOut": "Sign out"
+  },
+  "explore": {
+    "title": "Explore",
+    "intro": "This app includes example code to help you get started.",
+    "learnMore": "Learn more",
+    "collapsible": {
+      "routing": "File-based routing",
+      "routingBody1": "This app has two screens:",
+      "routingBody2": "and",
+      "routingBody3": "The layout file in",
+      "routingBody4": "sets up the tab navigator.",
+      "platforms": "Android, iOS, and web support",
+      "platformsBody": "You can open this project on Android, iOS, and the web. To open the web version, press",
+      "platformsBodyKey": "w",
+      "platformsBodySuffix": "in the terminal running this project.",
+      "images": "Images",
+      "imagesBody": "For static images, you can use the",
+      "imagesBodySuffix": "suffixes to provide files for different screen densities",
+      "theming": "Light and dark mode components",
+      "themingBody": "This template has light and dark mode support. The",
+      "themingBodyHook": "hook lets you inspect what the user's current color scheme is, and so you can adjust UI colors accordingly.",
+      "animations": "Animations",
+      "animationsBody": "This template includes an example of an animated component. The",
+      "animationsBodyMid": "component uses the powerful",
+      "animationsBodyLib": "library to create a waving hand animation.",
+      "animationsBodyIos": "The",
+      "animationsBodyIosMid": "component provides a parallax effect for the header image."
+    },
+    "pathHome": "app/(tabs)/index.tsx",
+    "pathExplore": "app/(tabs)/explore.tsx",
+    "pathLayout": "app/(tabs)/_layout.tsx",
+    "pathHelloWave": "components/HelloWave.tsx",
+    "pathParallax": "components/ParallaxScrollView.tsx",
+    "suffix2x": "@2x",
+    "suffix3x": "@3x",
+    "hookName": "useColorScheme()"
+  }
+}

@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+# After plan execution
+1. Update rules / skills based on results
+2. Update architectural information using architector sub-agent

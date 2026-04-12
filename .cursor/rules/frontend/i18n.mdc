@@ -1,0 +1,13 @@
+---
+description: Internationalization for the WayTwo mobile app (en / uk)
+globs: mobile/**/*.tsx, mobile/**/*.ts, mobile/locales/**/*.json
+alwaysApply: false
+---
+
+# Mobile i18n
+
+1. **Stack:** `i18next` + `react-i18next` + `expo-localization`. Configuration: `mobile/lib/i18n.ts`. Initial language: device locale when it is `uk`, otherwise `en`; fallback `en`.
+2. **Files:** JSON catalogs per language: `mobile/locales/en/common.json`, `mobile/locales/uk/common.json`. Namespace is the default `translation` (keys like `auth.continue`, `explore.title`).
+3. **Adding strings:** Add the same key to **both** `en` and `uk` JSON files. Use nested objects (`auth`, `validation`, `tabs`, `modal`, `home`, `explore`) to avoid a flat key soup.
+4. **Components:** Use `useTranslation()` and `t('group.key')` for any user-visible text. For Zod or validation, pass the translated message into helpers (e.g. `parseEmail(value, t('validation.invalidEmail'))`).
+5. **Navigation labels:** Tab and stack titles that depend on locale must read `t(...)` inside a component that sits under `I18nextProvider` (see `mobile/app/_layout.tsx`).

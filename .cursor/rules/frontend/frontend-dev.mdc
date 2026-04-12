@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+
+1. Keep consistent styles using the unified design system: semantic colors and gradients in `mobile/constants/theme.ts`; spacing, typography, radii, sizes, and opacity in `mobile/constants/tokens.ts`. Do not use raw numeric layout or font values in components unless there is no matching token (then add a token).
+2. User-visible copy in the mobile app must go through `react-i18next` (`useTranslation` / `t()`). Add keys to `mobile/locales/en/common.json` and `mobile/locales/uk/common.json` together. See `.cursor/rules/frontend/i18n.mdc`.
+3. Consult the designer sub-agent if Figma or product copy is unclear; document gaps with `FIGMA_GAP` in `tokens.ts` or in the rule below when reconciling with Figma.
+4. Use the shared logger (`mobile/src/lib/log`) for all logging. Do **not** use `console.*` directly. `log.debug`/`log.info` are dev-only; `log.warn`/`log.error` fire in all builds and are visible in device system logs — never log secrets, tokens, passwords, nonces, deep-link URLs, or PII at any level.
+5. Every Expo Router layout or screen that performs async work (API calls, Supabase, etc.) should either handle errors locally or export an `ErrorBoundary` (from `expo-router`) so render crashes are caught and logged. The root `ErrorBoundary` lives in `mobile/src/app/_layout.tsx`.

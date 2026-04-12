@@ -1,0 +1,22 @@
+---
+alwaysApply: false
+---
+
+# Backend architecture (Next.js 14 API)
+
+## Stack
+- Next.js 14 App Router (`backend/api`), Supabase for auth and database.
+
+## Logging
+- Use `backend/api/src/lib/logger` for all server-side logging. Do **not** use bare `console.*`.
+- Never log bearer tokens, full `Authorization` headers, secrets, or PII. For Supabase errors, log only `message` / `code` / `status`.
+- `backend/api/instrumentation.ts` registers global `uncaughtException` / `unhandledRejection` handlers via `logger.error`.
+
+## Middleware (`backend/api/src/middleware.ts`)
+- Log at `error` for server misconfiguration (missing env vars).
+- Log at `warn` for auth failures (missing/malformed token, `getUser` rejection). Include `error.message` and request `path`, never the token.
+- Response bodies to clients remain generic (`Unauthorized`, `Server misconfigured`) — internal detail stays in logs.
+
+## Route handlers
+- Wrap handler bodies in `try/catch` and use `toErrorResponse` from `backend/api/src/lib/route-errors` to log and return a safe 500.
+- Add `@swagger` JSDoc blocks for OpenAPI (see `backend/api/src/lib/swagger.ts`).

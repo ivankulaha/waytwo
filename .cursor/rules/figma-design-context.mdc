@@ -1,0 +1,75 @@
+---
+description: Figma design specs for Way-Two auth flows and UI
+globs: mobile/**/*.tsx, mobile/**/*.ts
+alwaysApply: false
+---
+
+# Way-Two Figma Design Context
+
+**Source:** [Figma — Way-Two](https://www.figma.com/design/X9k3exHF4liOg4Iwy8VlSm/Way-Two?node-id=52-791)  
+**Node:** 52:791 (auth flows board)  
+**Screen ref:** [107:785](https://www.figma.com/design/X9k3exHF4liOg4Iwy8VlSm/Way-Two?node-id=107-785) — login/register entry
+
+## Auth Flow (User Journey)
+
+Start screen → Login screen → Account create → Forgot password → Password reset link → Email sent → Success / Error
+
+States: "Waiting for user action (confirm email, link click)", "User created and logged in", "Temporary password sent"
+
+## Flow-Specific Gradient Headers
+
+| Flow | Header gradient |
+|------|-----------------|
+| Login / Sign up | Purple / blue |
+| Forgot password | Green / teal |
+| Change password | Orange / purple |
+
+## Screen Types & Copy
+
+### Login / Sign up
+- Header: "Connect to continue" / "Подключитесь, чтобы продолжить"
+- Email step: "Enter your email", placeholder "Email", CTA "Continue"
+- Password step: "Enter your password", placeholder "Password", CTA "Continue"
+- Secondary: "Do you already have an account?" → "Log in" | "Forgot password?"
+
+### Forgot password
+- Header: "Forgot password"
+- Instruction: "Enter your email"
+- CTA: "Continue"
+- Secondary: "Go back to login"
+
+### Change password
+- Header: "Change password"
+- Secondary: "Cancel", "Try again" (on error)
+- Create step: "Create new password", placeholder "New password"
+- Confirm step: "Confirm new password", placeholder "Confirm password"
+- CTA: "Change", "Continue"
+- Error: "Something went wrong"
+
+## UI Components
+
+**Inputs:** Name, Email, Password, Confirm Password (dark theme, labels, empty/filled/active states)
+
+**Buttons:** Continue, Back, Next, Save, Cancel, Delete (solid primary, outlined secondary)
+
+## Theme
+
+- **Background:** Dark gradient header per flow → solid black
+- **Text:** White / light; buttons: black text on white
+- **Primary language:** Ukrainian (en + uk support)
+
+## Design Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bgGradientBottom` | `#000000` | Bottom of gradient |
+| `buttonBg` | `#FFFFFF` | Primary buttons |
+| `buttonText` | `#000000` | Text on primary buttons |
+| `inputBg` | `#0a0a0a` | Input background |
+| `inputPlaceholder` | `#6b7280` | Placeholder |
+
+## Code sync
+
+- **Colors / gradients:** `mobile/constants/theme.ts` (`AuthColors`, `AuthFlowGradients`, `Colors`, `ExploreTemplateColors`). If Figma values differ, prefer Figma for new work and add a short `FIGMA_GAP` note in `mobile/constants/tokens.ts` or next to the token in `theme.ts`.
+- **Layout / type scale:** `mobile/constants/tokens.ts` (`Spacing`, `FontSize`, `LineHeight`, `BorderRadius`, `Size`, `IconSize`, etc.). Replace magic numbers in UI with these exports.
+- **Languages:** Ukrainian and English are supported in app copy (`mobile/locales/`). Figma copy may be Ukrainian-first; keep English keys as the default fallback language in i18n.
