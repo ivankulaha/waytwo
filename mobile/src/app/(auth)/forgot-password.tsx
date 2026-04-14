@@ -72,6 +72,7 @@ export default function AuthForgotPasswordScreen() {
             backgroundColor: c.inputBg,
             borderColor: error ? c.errorText : c.inputBorder,
             color: c.text,
+            marginBottom: error ? Spacing.sm : Spacing.xl,
           },
         ]}
         placeholder={t('auth.emailPlaceholder')}
@@ -100,11 +101,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     fontSize: FontSize.lg,
     borderWidth: Size.borderWidth,
-    marginBottom: Spacing.md,
   },
   err: {
     fontSize: FontSize.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   body: {
     fontSize: FontSize.base,
