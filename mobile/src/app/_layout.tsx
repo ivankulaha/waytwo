@@ -23,21 +23,38 @@ function NavigationRoot() {
   const router = useRouter();
 
   useEffect(() => {
+    const parseFragment = (url: string): Record<string, string> => {
+      try {
+        const idx = url.indexOf('#');
+        if (idx === -1) return {};
+        return Object.fromEntries(new URLSearchParams(url.substring(idx + 1)));
+      } catch {
+        return {};
+      }
+    };
+
     const consumeUrl = async (url: string | null) => {
       if (!url) return;
-      const lower = url.toLowerCase();
-      if (lower.includes('code=') || lower.includes('access_token')) {
-        const { error } = await supabase.auth.exchangeCodeForSession(url);
+
+      // Default Supabase email: verify endpoint redirects with access_token/refresh_token in fragment
+      const fragment = parseFragment(url);
+      if (fragment.access_token && fragment.refresh_token) {
+        const { error } = await supabase.auth.setSession({
+          access_token: fragment.access_token,
+          refresh_token: fragment.refresh_token,
+        });
         if (error) {
-          // Never log the URL — it may contain code= or access_token= params
-          log.error('Deep-link session exchange failed', {
+          log.error('Deep-link setSession failed', {
             message: error.message,
             code: (error as { code?: string }).code,
           });
           return;
         }
-        setNeedsNewPassword(true);
-        router.replace('/(auth)/new-password');
+        if (fragment.type === 'recovery') {
+          setNeedsNewPassword(true);
+          router.replace('/(auth)/new-password');
+        }
+        return;
       }
     };
 

@@ -9,7 +9,7 @@ End users sign in or sign up on the Expo app using **Supabase Auth** (email/pass
 - **Client:** `mobile/src/lib/supabase.ts` — Supabase client + secure storage adapter; env `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (legacy `EXPO_PUBLIC_SUPABASE_ANON_KEY` optional), `EXPO_PUBLIC_API_URL`.
 - **Email branch:** `mobile/src/lib/auth-api.ts` — `POST …/auth/check-email` (no bearer) after the user submits email; routes to password (registered) or signup (not registered).
 - **State:** `mobile/src/context/AuthContext.tsx` — session, `onAuthStateChange`, `needsNewPassword` flag after recovery deep link.
-- **Navigation:** `mobile/src/app/_layout.tsx` — guards `(tabs)` vs `(auth)`, handles password-reset URLs with `exchangeCodeForSession`.
+- **Navigation:** `mobile/src/app/_layout.tsx` — guards `(tabs)` vs `(auth)`, handles password-reset deep links from the default Supabase email (`{{ .ConfirmationURL }}`): parse URL fragment for `access_token` / `refresh_token`, then `setSession` and route to new password when `type=recovery`.
 - **Flows:** `mobile/src/app/(auth)/` — email entry, optional Apple on iOS, API check, password (login) or signup (password only; email from params), forgot password, new password after deep link. Password validation minimum **6** characters (aligned with Supabase project settings).
 
 ## Backend
