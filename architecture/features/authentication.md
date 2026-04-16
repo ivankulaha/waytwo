@@ -14,7 +14,7 @@ End users sign in or sign up on the Expo app using **Supabase Auth** (email/pass
 
 ## Backend
 
-- **Env:** `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (legacy `SUPABASE_ANON_KEY` optional), and **`SUPABASE_SERVICE_ROLE_KEY`** (server-only secret JWT) for Auth Admin lookups on the check-email route.
+- **Env:** `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (legacy `SUPABASE_ANON_KEY` optional), and **`SUPABASE_SERVICE_ROLE_KEY`** (server-only secret JWT) for Auth Admin lookups on the check-email route. Optional **Azure Key Vault** (`AZURE_KEYVAULT_URL`, `DefaultAzureCredential`) can supply the two Supabase keys when unset; see [ADR-0005](../adr/0005-azure-keyvault-secrets.md).
 - **Middleware:** `backend/api/src/middleware.ts` — CORS, JWT validation except `GET /api/v1/health` and **`POST /api/v1/auth/check-email`**.
 - **Routes:** `GET /api/v1/me` — uses `x-user-id` from middleware. **`POST /api/v1/auth/check-email`** — public JSON `{ email }` → `{ registered: boolean }`; uses `backend/api/src/lib/supabase-admin.ts` and paginated `auth.admin.listUsers` until match or end of list (scale note: see [tech-debt](../tech-debt.md)).
 

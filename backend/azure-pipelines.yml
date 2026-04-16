@@ -1,0 +1,74 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend/**
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend/**
+
+variables:
+  azureSubscription: 'YOUR_AZURE_SERVICE_CONNECTION'
+  acrServiceConnection: 'YOUR_ACR_SERVICE_CONNECTION'
+  acrName: 'yourregistry.azurecr.io'
+  webAppName: 'your-webapp-name'
+  imageRepository: 'way-two'
+  imageTag: '$(Build.BuildId)'
+
+stages:
+  - stage: Build
+    displayName: Build
+    jobs:
+      - job: BuildImage
+        displayName: Build container image
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: Docker@2
+            displayName: Build image (PR validation only)
+            condition: eq(variables['Build.Reason'], 'PullRequest')
+            inputs:
+              command: build
+              repository: $(imageRepository)
+              dockerfile: backend/api/Dockerfile
+              buildContext: backend/api
+              tags: |
+                $(imageTag)
+
+          - task: Docker@2
+            displayName: Build and push image (main only)
+            condition: ne(variables['Build.Reason'], 'PullRequest')
+            inputs:
+              command: buildAndPush
+              containerRegistry: $(acrServiceConnection)
+              repository: $(imageRepository)
+              dockerfile: backend/api/Dockerfile
+              buildContext: backend/api
+              tags: |
+                $(imageTag)
+
+  - stage: Release
+    displayName: Release
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: UpdateWebAppImage
+        displayName: Update Web App container image tag
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: AzureWebAppContainer@1
+            displayName: Update container image on Web App
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(webAppName)
+              containers: $(acrName)/$(imageRepository):$(imageTag)

@@ -14,5 +14,11 @@ export async function register() {
         reason instanceof Error ? reason.message : String(reason);
       logger.error('Unhandled rejection', { message });
     });
+
+    if (process.env.AZURE_KEYVAULT_URL?.trim()) {
+      const { preloadAll, startRefreshLoop } = await import('./src/lib/secrets');
+      await preloadAll();
+      startRefreshLoop();
+    }
   }
 }

@@ -3,22 +3,21 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
 
-const supabaseUrl = process.env.SUPABASE_URL?.trim();
-const supabasePublishableKey =
-  process.env.SUPABASE_PUBLISHABLE_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
-
-const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:8081';
-
-function corsHeaders(): HeadersInit {
-  return {
-    'Access-Control-Allow-Origin': corsOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Max-Age': '86400',
-  };
-}
-
 export async function middleware(request: NextRequest) {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim();
+  const supabasePublishableKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY?.trim() || process.env.SUPABASE_ANON_KEY?.trim();
+  const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:8081';
+
+  function corsHeaders(): HeadersInit {
+    return {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      'Access-Control-Max-Age': '86400',
+    };
+  }
+
   const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith('/api/v1')) {
