@@ -1,7 +1,9 @@
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { logger } = await import('./src/lib/logger');
+  const { logger } = await import('./src/lib/logger');
+  const runtime = process.env.NEXT_RUNTIME ?? 'unknown';
+  logger.info('Instrumentation register invoked', { runtime });
 
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception', {
         message: err.message,
@@ -15,10 +17,18 @@ export async function register() {
       logger.error('Unhandled rejection', { message });
     });
 
-    if (process.env.AZURE_KEYVAULT_URL?.trim()) {
+    const keyVaultEnabled = Boolean(process.env.AZURE_KEYVAULT_URL?.trim());
+    logger.info('Startup secret source resolved', { keyVaultEnabled });
+
+    if (keyVaultEnabled) {
+      logger.info('Key Vault bootstrap starting');
       const { preloadAll, startRefreshLoop } = await import('./src/lib/secrets');
       await preloadAll();
+      logger.info('Key Vault preload finished');
       startRefreshLoop();
+      logger.info('Key Vault refresh loop initialized');
+    } else {
+      logger.info('Key Vault disabled; using environment-provided secrets');
     }
   }
 }

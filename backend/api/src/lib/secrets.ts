@@ -34,18 +34,40 @@ export async function preloadAll(): Promise<void> {
   const provided = ensureUserProvidedKeysSnapshot();
 
   if (!isKeyVaultEnabled()) {
+    logger.info('Secret preload skipped: Key Vault disabled');
     return;
   }
 
+  logger.info('Secret preload started', {
+    mappedSecretCount: Object.keys(SECRET_MAP).length,
+  });
+
+  let loadedCount = 0;
+  let missingCount = 0;
+  let providedCount = 0;
+
   for (const [envKey, vaultName] of Object.entries(SECRET_MAP)) {
     if (provided.has(envKey)) {
+      providedCount += 1;
+      logger.info('Secret already provided via environment', { envKey });
       continue;
     }
     const value = await getSecretFromVault(vaultName);
     if (value) {
       process.env[envKey] = value;
+      loadedCount += 1;
+      logger.info('Secret loaded from Key Vault', { envKey, vaultName });
+    } else {
+      missingCount += 1;
+      logger.warn('Secret not resolved from Key Vault', { envKey, vaultName });
     }
   }
+
+  logger.info('Secret preload completed', {
+    loadedCount,
+    missingCount,
+    providedCount,
+  });
 }
 
 async function refreshFromVault(): Promise<void> {
@@ -66,6 +88,7 @@ async function refreshFromVault(): Promise<void> {
 
 export function startRefreshLoop(): void {
   if (refreshTimer !== null) {
+    logger.debug('Secret refresh loop already running');
     return;
   }
   const intervalMs = getCacheTtlMs();
@@ -75,12 +98,14 @@ export function startRefreshLoop(): void {
       logger.warn('Key Vault refresh failed', { message });
     });
   }, intervalMs);
+  logger.info('Secret refresh loop started', { intervalMs });
 }
 
 export function stopRefreshLoop(): void {
   if (refreshTimer !== null) {
     clearInterval(refreshTimer);
     refreshTimer = null;
+    logger.info('Secret refresh loop stopped');
   }
 }
 
