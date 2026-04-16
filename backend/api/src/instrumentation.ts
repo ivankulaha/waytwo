@@ -1,5 +1,6 @@
+import { logger } from '@/lib/logger';
+
 export async function register() {
-  const { logger } = await import('./src/lib/logger');
   const runtime = process.env.NEXT_RUNTIME ?? 'unknown';
   logger.info('Instrumentation register invoked', { runtime });
 
@@ -22,7 +23,7 @@ export async function register() {
 
     if (keyVaultEnabled) {
       logger.info('Key Vault bootstrap starting');
-      const { preloadAll, startRefreshLoop } = await import('./src/lib/secrets');
+      const { preloadAll, startRefreshLoop } = await import('@/lib/secrets');
       await preloadAll();
       logger.info('Key Vault preload finished');
       startRefreshLoop();

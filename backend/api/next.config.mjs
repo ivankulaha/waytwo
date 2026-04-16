@@ -33,6 +33,7 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   experimental: {
+    instrumentationHook: true,
     outputFileTracingIncludes: {
       '/api/docs/spec': ['./src/app/api/**/*.ts'],
     },
