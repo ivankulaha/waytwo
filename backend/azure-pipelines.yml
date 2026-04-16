@@ -15,10 +15,10 @@ pr:
       - backend/**
 
 variables:
-  azureSubscription: 'YOUR_AZURE_SERVICE_CONNECTION'
-  acrServiceConnection: 'YOUR_ACR_SERVICE_CONNECTION'
-  acrName: 'yourregistry.azurecr.io'
-  webAppName: 'your-webapp-name'
+  azureSubscription: 'AZURE_SERVICE_CONNECTION'
+  acrServiceConnection: 'ACR_SERVICE_CONNECTION'
+  acrName: 'waytwocontainerregistery-hzc8eeg3fkb9dsgn.azurecr.io'
+  webAppName: 'way-two-api-mobile'
   imageRepository: 'way-two'
   imageTag: '$(Build.BuildId)'
 
