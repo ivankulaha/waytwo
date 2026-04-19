@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
-import { LabeledInput } from '@/components/auth/labeled-input';
+import { FormTextField } from '@/components/ui/form-field';
 import { PrimaryButton } from '@/components/auth/primary-button';
 import { log } from '@/lib/log';
 import { supabase } from '@/lib/supabase';
@@ -57,7 +57,7 @@ export default function AuthSignupScreen() {
       return;
     }
     if (data.session) {
-      router.replace('/(tabs)');
+      router.replace('/');
       return;
     }
     setNeedsEmailConfirmation(true);
@@ -72,7 +72,6 @@ export default function AuthSignupScreen() {
   if (needsEmailConfirmation) {
     return (
       <AuthShell
-        flow="signup"
         title={t('auth.confirmEmailTitle')}
         showBack
         onBack={() => router.replace('/(auth)')}
@@ -90,7 +89,6 @@ export default function AuthSignupScreen() {
 
   return (
     <AuthShell
-      flow="signup"
       title={t('auth.createAccountTitle')}
       subtitle={t('auth.choosePasswordSubtitle')}
       showBack
@@ -99,19 +97,20 @@ export default function AuthSignupScreen() {
       {email ? (
         <Text style={[styles.emailHint, { color: c.textSubtle }]}>{t('auth.signupEmailHint', { email })}</Text>
       ) : null}
-      <LabeledInput
+      <FormTextField
         label={t('auth.passwordLabel')}
+        placeholder={t('auth.passwordPlaceholder')}
         value={password}
         onChangeText={(v) => {
           setPassword(v);
           setError(undefined);
         }}
-        placeholder={t('auth.passwordPlaceholder')}
         secure
         textContentType="newPassword"
         autoComplete="password-new"
         importantForAutofill="yes"
-        error={inlineHint ?? error}
+        errorMessage={inlineHint ?? error}
+        accessibilityLabel={t('auth.passwordPlaceholder')}
       />
       <PrimaryButton label={t('auth.continue')} onPress={onSubmit} disabled={!canSubmit} loading={loading} />
     </AuthShell>

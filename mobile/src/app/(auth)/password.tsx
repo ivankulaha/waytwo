@@ -4,9 +4,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
-import { LabeledInput } from '@/components/auth/labeled-input';
+import { FormTextField } from '@/components/ui/form-field';
 import { PrimaryButton } from '@/components/auth/primary-button';
-import { FontSize, LineHeight, Spacing } from '@/constants/tokens';
+import { FontSize, FontWeight, LineHeight, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
 import { log } from '@/lib/log';
 import { supabase } from '@/lib/supabase';
@@ -38,55 +38,67 @@ export default function AuthPasswordScreen() {
       setError(t('auth.invalidEmailOrPassword'));
       return;
     }
-    router.replace('/(tabs)');
+    router.replace('/');
   };
 
   const canSubmit = password.length > 0;
 
   return (
     <AuthShell
-      flow="login"
       title={t('auth.enterPasswordTitle')}
       showBack
       onBack={() => router.back()}
     >
-      <LabeledInput
+      <FormTextField
         label={t('auth.emailLabel')}
+        placeholder={t('auth.emailPlaceholder')}
         value={email}
         onChangeText={() => undefined}
         editable={false}
         keyboardType="email-address"
         textContentType="emailAddress"
         autoComplete="email"
+        accessibilityLabel={t('auth.emailLabel')}
       />
-      <LabeledInput
+      <FormTextField
         label={t('auth.passwordLabel')}
+        placeholder={t('auth.passwordPlaceholder')}
         value={password}
         onChangeText={(v) => {
           setPassword(v);
           setError(undefined);
         }}
-        placeholder={t('auth.passwordPlaceholder')}
         secure
         textContentType="password"
         autoComplete="current-password"
         importantForAutofill="yes"
-        error={error}
+        errorMessage={error}
+        accessibilityLabel={t('auth.passwordPlaceholder')}
       />
       <PrimaryButton label={t('auth.continue')} onPress={onSubmit} disabled={!canSubmit} loading={loading} />
-      <Pressable onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}>
-        <Text style={[styles.link, { color: c.textSubtle }]}>{t('auth.forgotPassword')}</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}
+        style={styles.forgotPasswordHit}
+      >
+        <Text style={[styles.forgotPassword, { color: c.text }]}>{t('auth.forgotPassword')}</Text>
       </Pressable>
     </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  link: {
-    fontSize: FontSize.base,
+  forgotPasswordHit: {
+    marginTop: Spacing['3xl'],
+    minHeight: 24,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forgotPassword: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.semibold,
+    lineHeight: LineHeight.normal,
     textAlign: 'center',
-    marginTop: Spacing.md,
-    textDecorationLine: 'underline',
-    lineHeight: LineHeight.snug,
   },
 });

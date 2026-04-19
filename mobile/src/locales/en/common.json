@@ -1,7 +1,13 @@
 {
+  "common": {
+    "cancel": "Cancel",
+    "choose": "Choose",
+    "clearField": "Clear",
+    "dismissSheet": "Close"
+  },
   "auth": {
-    "signInOrCreateTitle": "Sign in or create an account",
-    "signInOrCreateSubtitle": "Stay close, even when you are apart.",
+    "signInOrCreateTitle": "Sign in or sign up",
+    "signInOrCreateSubtitle": "An app that helps you stay close, even when you are far apart",
     "continueWithApple": "Continue with Apple",
     "or": "or",
     "emailPlaceholder": "Email",
@@ -52,6 +58,51 @@
     "hint": "The app ran into a problem. You can try again or restart.",
     "retry": "Try again"
   },
+  "onboarding": {
+    "intro": {
+      "title": "Let's set up your profile",
+      "subtitle": "This takes about a minute and helps make the space feel more personal for both of you.",
+      "cta": "Start"
+    },
+    "you": {
+      "title": "About you",
+      "nameLabel": "Your name",
+      "genderLabel": "Gender",
+      "next": "Next",
+      "dobRowLabel": "Date of birth",
+      "namePlaceholder": "Your name",
+      "nameRequired": "Please enter your name.",
+      "genderRequired": "Please choose an option.",
+      "dobLabel": "Date of birth (optional)",
+      "dobPlaceholder": "Tap to choose",
+      "clear": "Clear",
+      "dobClear": "Clear date",
+      "dobDone": "Done",
+      "genderMale": "Male",
+      "genderFemale": "Female",
+      "genderOther": "Other"
+    },
+    "look": {
+      "title": "Your look",
+      "colorLabel": "Profile color",
+      "changePhoto": "Change photo",
+      "cropTitle": "Move and scale",
+      "finish": "Finish",
+      "skip": "Skip for now"
+    },
+    "common": {
+      "continue": "Continue",
+      "back": "Back",
+      "stepA11y": "Step {{current}} of {{total}}"
+    },
+    "logoutTitle": "Log out?",
+    "logoutMessage": "You will need to sign in again to continue.",
+    "logoutCancel": "Cancel",
+    "logoutConfirm": "Log out",
+    "errors": {
+      "syncFailed": "Could not save. Check your connection and try again."
+    }
+  },
   "home": {
     "title": "Home",
     "subtitle": "You are signed in. Pairing and onboarding will live here later.",
@@ -83,14 +134,6 @@
       "animationsBodyLib": "library to create a waving hand animation.",
       "animationsBodyIos": "The",
       "animationsBodyIosMid": "component provides a parallax effect for the header image."
-    },
-    "pathHome": "app/(tabs)/index.tsx",
-    "pathExplore": "app/(tabs)/explore.tsx",
-    "pathLayout": "app/(tabs)/_layout.tsx",
-    "pathHelloWave": "components/HelloWave.tsx",
-    "pathParallax": "components/ParallaxScrollView.tsx",
-    "suffix2x": "@2x",
-    "suffix3x": "@3x",
-    "hookName": "useColorScheme()"
+    }
   }
 }

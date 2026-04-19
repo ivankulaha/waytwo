@@ -10,7 +10,7 @@ Screens used scattered numeric values for spacing, type, and radii, and a few ha
 
 ## Decision
 
-1. Keep **semantic colors and gradients** in **`mobile/constants/theme.ts`** (`AuthColors`, `AuthFlowGradients`, `Colors`, `ExploreTemplateColors`, etc.).
+1. Keep **semantic colors** in **`mobile/constants/theme.ts`** (`AuthColors`, `Colors`, `ExploreTemplateColors`, etc.). Keep **Figma-shaped radial blob palettes and geometry** in **`mobile/src/constants/gradients.ts`**, rendered via **`mobile/src/components/ui/radial-blob.tsx`** (Skia).
 2. Add **`mobile/constants/tokens.ts`** for non-color design decisions: **`Spacing`**, **`FontSize`**, **`LineHeight`**, **`FontWeight`**, **`BorderRadius`**, **`Size`**, **`IconSize`**, **`Opacity`**, **`LayoutOffset`**.
 3. **Do not** adopt NativeWind, Tamagui, or Unistyles for this iteration; `StyleSheet.create` + tokens keeps dependencies low and matches current patterns.
 4. When Figma and code disagree, prefer aligning new work to Figma and record discrepancies with **`FIGMA_GAP`** comments in `tokens.ts` (or adjacent to the relevant color token).

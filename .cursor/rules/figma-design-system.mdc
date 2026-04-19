@@ -1,0 +1,61 @@
+---
+description: WayTwo mobile — Figma MCP and design-to-code conventions (tokens, structure, i18n)
+globs: mobile/**/*.tsx, mobile/**/*.ts
+alwaysApply: false
+---
+
+# Figma MCP and design system (WayTwo mobile)
+
+Use this together with `.cursor/rules/figma-design-context.mdc` (screen-level specs and Figma links) and `.cursor/rules/frontend/frontend-dev.mdc`.
+
+## When using Figma MCP tools
+
+- Prefer **`get_design_context`** (and screenshots if needed) for a specific node before implementing UI; keep node IDs in sync with `figma-design-context.mdc` when working on auth.
+- For variables/tokens defined in Figma files, use **`get_variable_defs`** when mapping to code tokens.
+- **`use_figma`** (canvas writes): load the `figma-use` skill first; use only when the task explicitly requires plugin-side edits.
+- Never log Figma URLs that contain secrets, session tokens, or private file keys in user-visible or production logs; follow `mobile/src/lib/log` rules in `frontend-dev.mdc`.
+
+## 1. Token definitions
+
+| Concern | Source | Notes |
+|--------|--------|--------|
+| Semantic colors | `mobile/src/constants/theme.ts` | Use named exports (`AuthColors`, `Colors`, etc.). |
+| Radial blob gradients (auth + onboarding intro) | `mobile/src/constants/gradients.ts` + `mobile/src/components/ui/radial-blob.tsx` | Figma-shaped stops (`colors` + `positions`); render with Skia `<RadialBlob>`. |
+| Layout, type, radii, sizes, opacity | `mobile/src/constants/tokens.ts` | **No raw magic numbers** in UI when a token exists; add a token if Figma introduces a new repeated value. |
+| Figma vs code drift | `FIGMA_GAP` in `tokens.ts` or next to a constant in `theme.ts` | Document intentional differences; prefer aligning new work to Figma when product agrees. |
+
+## 2. Component library
+
+- Shared UI: `mobile/src/components/ui/`, shells (`auth-shell`, `onboarding-shell`), and feature folders under `mobile/src/components/`.
+- Screens and navigation: **Expo Router** — `mobile/src/app/` (`(auth)`, `(onboarding)`, `(tabs)`, etc.).
+- New presentational pieces that mirror Figma frames should live next to existing patterns (e.g. `components/onboarding/` for onboarding steps), not ad hoc at the app root.
+
+## 3. Frameworks and build
+
+- **React Native** + **Expo** (SDK per `mobile/package.json`), **Expo Router** for file-based routing.
+- Styling: **React Native `StyleSheet`** and inline style objects where the codebase already does; no project-wide Tailwind/NativeWind for these screens unless the stack changes.
+- TypeScript throughout; match existing import style (`@/` or relative per file neighbors).
+
+## 4. Assets
+
+- Static assets under `mobile/assets/` (e.g. app icon config); images in screens often use `require()` of local paths or remote URIs per screen — follow the nearest screen’s pattern.
+- Do not embed large binary data in rules; reference paths only.
+
+## 5. Icon system
+
+- **`IconSymbol`** in `mobile/src/components/ui/icon-symbol.tsx`: SF Symbols names on iOS with a **manual map** to Material Icons for Android/web. New Figma icons need a **new mapping entry** if they use new symbol names.
+
+## 6. Copy and localization
+
+- All user-visible strings: **`react-i18next`** — keys in **`mobile/src/locales/en/common.json`** and **`mobile/src/locales/uk/common.json`** together (`useTranslation` / `t()`).
+- Figma copy may be Ukrainian-first; English remains the i18n fallback language in code.
+
+## 7. Logging and instrumentation
+
+- Use **`mobile/src/lib/log`** only (no raw `console.*` in app code per project rules).
+- At action boundaries for Figma-driven flows (submit profile, sync, pick avatar), use structured `log.info` / `log.debug` with `op`, `step`, `status` — never log PII, tokens, or full URIs with secrets.
+
+## 8. Repo layout (high level)
+
+- `mobile/` — Expo app (this rule’s scope).
+- `backend/api/` — Next.js API; not the target for Figma frame implementation unless the task is explicitly web.

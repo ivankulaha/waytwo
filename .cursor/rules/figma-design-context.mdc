@@ -1,10 +1,35 @@
 ---
-description: Figma design specs for Way-Two auth flows and UI
+description: Figma design specs for WayTwo mobile (onboarding, auth)
 globs: mobile/**/*.tsx, mobile/**/*.ts
 alwaysApply: false
 ---
 
-# Way-Two Figma Design Context
+# WayTwo Figma Design Context
+
+## MCP-accessible file (primary for agents)
+
+**File:** [WayTwo (Copy)](https://www.figma.com/design/NIofouu7Ph9yhZs118YH9j/WayTwo--Copy-) — `fileKey` **`NIofouu7Ph9yhZs118YH9j`**. Use this key with Figma MCP `get_metadata` / `get_design_context` (call **frame** nodes, not whole sections, for full context + screenshots).
+
+### Onboarding (v2 — implement against this)
+
+**Section:** [326:5994](https://www.figma.com/design/NIofouu7Ph9yhZs118YH9j/WayTwo--Copy-?node-id=326-5994) (`nodeId` **`326:5994`**)
+
+| Frame (Figma) | Role |
+|----------------|------|
+| `326:5995` onboarding -- **7** | Intro: headline + body + primary CTA |
+| `326:6003` onboarding -- **8** | Form: 3× `56` inputs, gap `68`, primary **`200×48`** @ `x:85` |
+| `326:6015` onboarding -- **9** | Same form pattern |
+| `326:6027` onboarding -- **10** | Same form pattern |
+| `326:6039` onboarding -- **11** | Look: back `48×48`, avatar `120×120`, “Колір профілю”, 6+6 swatches (`48` tap, `36` inner), bottom `370×24` |
+| `326:6080` onboarding -- **12** | Photo state + primary **`200×48`** |
+
+**Shared layout (v2):** artboard **`402×874`**, horizontal inset **`16`**, content **`370`**, keyboard from **`y:557`** on form steps. Prefer these numbers when reconciling with `mobile/src/constants/tokens.ts`.
+
+**Legacy section (v1, reference only):** [150:3008](https://www.figma.com/design/NIofouu7Ph9yhZs118YH9j/WayTwo--Copy-?node-id=150-3008) — frames onboarding **01–06** (narrower primary buttons on some steps).
+
+---
+
+## Auth flows (legacy board until merged into Copy)
 
 **Source:** [Figma — Way-Two](https://www.figma.com/design/X9k3exHF4liOg4Iwy8VlSm/Way-Two?node-id=52-791)  
 **Node:** 52:791 (auth flows board)  
@@ -70,6 +95,6 @@ States: "Waiting for user action (confirm email, link click)", "User created and
 
 ## Code sync
 
-- **Colors / gradients:** `mobile/constants/theme.ts` (`AuthColors`, `AuthFlowGradients`, `Colors`, `ExploreTemplateColors`). If Figma values differ, prefer Figma for new work and add a short `FIGMA_GAP` note in `mobile/constants/tokens.ts` or next to the token in `theme.ts`.
+- **Colors:** `mobile/src/constants/theme.ts` (`AuthColors`, `Colors`, `ExploreTemplateColors`, etc.). **Radial blob gradients:** `mobile/src/constants/gradients.ts` + **`<RadialBlob>`** (Skia in `mobile/src/components/ui/radial-blob.tsx`) — match Figma picker stops 1:1 (`colors` + `positions`). If Figma values differ, prefer Figma for new work and add a short `FIGMA_GAP` note in `tokens.ts` or next to the token.
 - **Layout / type scale:** `mobile/constants/tokens.ts` (`Spacing`, `FontSize`, `LineHeight`, `BorderRadius`, `Size`, `IconSize`, etc.). Replace magic numbers in UI with these exports.
 - **Languages:** Ukrainian and English are supported in app copy (`mobile/locales/`). Figma copy may be Ukrainian-first; keep English keys as the default fallback language in i18n.

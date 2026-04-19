@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
 import { PrimaryButton } from '@/components/auth/primary-button';
+import { FormTextField } from '@/components/ui/form-field';
 import { BorderRadius, FontSize, FontWeight, IconSize, Opacity, Size, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
 import { checkEmailRegistered, CheckEmailError } from '@/lib/auth-api';
@@ -88,7 +89,7 @@ export default function AuthEmailScreen() {
         setError(t('auth.appleSignInError'));
         return;
       }
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') {
         return;
@@ -106,7 +107,6 @@ export default function AuthEmailScreen() {
 
   return (
     <AuthShell
-      flow="email"
       title={t('auth.signInOrCreateTitle')}
       subtitle={t('auth.signInOrCreateSubtitle')}
     >
@@ -117,13 +117,14 @@ export default function AuthEmailScreen() {
           disabled={appleLoading}
           style={({ pressed }) => [
             styles.apple,
-            { backgroundColor: c.buttonBg },
+            {
+              backgroundColor: pressed && !appleLoading ? c.ssoPressedBg : c.ssoBg,
+            },
             appleLoading && styles.disabled,
-            pressed && !appleLoading && styles.pressed,
           ]}
         >
-          <Ionicons name="logo-apple" size={IconSize.md} color={c.buttonText} />
-          <Text style={[styles.appleText, { color: c.buttonText }]}>{t('auth.continueWithApple')}</Text>
+          <Ionicons name="logo-apple" size={IconSize.md} color={c.ssoText} />
+          <Text style={[styles.appleText, { color: c.ssoText }]}>{t('auth.continueWithApple')}</Text>
         </Pressable>
       ) : null}
 
@@ -135,30 +136,26 @@ export default function AuthEmailScreen() {
         </View>
       ) : null}
 
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: c.inputBg,
-            borderColor: error ? c.errorText : c.inputBorder,
-            color: c.text,
-            marginBottom: error ? Spacing.sm : Spacing.xl,
-          },
-        ]}
+      <FormTextField
+        label={t('auth.emailLabel')}
         placeholder={t('auth.emailPlaceholder')}
-        placeholderTextColor={c.placeholderText}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        textContentType="emailAddress"
-        autoComplete="email"
         value={email}
         onChangeText={(v) => {
           setEmail(v);
           setError(undefined);
         }}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        textContentType="emailAddress"
+        autoComplete="email"
+        errorMessage={error}
+        onClear={() => {
+          setEmail('');
+          setError(undefined);
+        }}
+        clearAccessibilityLabel={t('common.clearField')}
+        accessibilityLabel={t('auth.emailPlaceholder')}
       />
-      {error ? <Text style={[styles.error, { color: c.errorText }]}>{error}</Text> : null}
 
       <PrimaryButton
         label={t('auth.continue')}
@@ -187,9 +184,6 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: Opacity.appleDisabled,
   },
-  pressed: {
-    opacity: Opacity.pressedLight,
-  },
   sepRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,16 +196,5 @@ const styles = StyleSheet.create({
   },
   sepText: {
     fontSize: FontSize.md,
-  },
-  input: {
-    height: Size.inputHeight,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.xl,
-    fontSize: FontSize.lg,
-    borderWidth: Size.borderWidth,
-  },
-  error: {
-    fontSize: FontSize.sm,
-    marginBottom: Spacing.xl,
   },
 });

@@ -20,3 +20,10 @@ alwaysApply: false
 ## Route handlers
 - Wrap handler bodies in `try/catch` and use `toErrorResponse` from `backend/api/src/lib/route-errors` to log and return a safe 500.
 - Add `@swagger` JSDoc blocks for OpenAPI (see `backend/api/src/lib/swagger.ts`).
+
+## Observability
+- Log `logger.info` at the start of each `/api/v1/*` handler with `{ route, method, userId }` (never log tokens or bodies with PII).
+- Log `logger.info` when the handler finishes successfully with `{ route, status, durationMs }`.
+- Log `logger.info` for main domain steps (e.g. profile upserted, onboarding completed) using non-sensitive metadata only: field names changed, counts, ids — never raw field values or secrets.
+- Use `logger.warn` for validation failures (Zod issues shape), RLS or Supabase client errors (`message`, `code`, `status` only).
+- Reserve `logger.error` for unexpected 5xx paths surfaced through `toErrorResponse`.

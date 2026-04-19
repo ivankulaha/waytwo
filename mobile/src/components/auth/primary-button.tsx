@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
-import { BorderRadius, FontSize, FontWeight, Opacity, Size, Spacing } from '@/constants/tokens';
+import { BorderRadius, FontSize, FontWeight, Size, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
 
 type PrimaryButtonProps = {
@@ -13,6 +13,7 @@ type PrimaryButtonProps = {
 export function PrimaryButton({ label, onPress, disabled, loading }: PrimaryButtonProps) {
   const c = useAuthColors();
   const inactive = disabled || loading;
+  const fg = inactive ? c.buttonDisabledText : c.buttonText;
 
   return (
     <Pressable
@@ -21,15 +22,20 @@ export function PrimaryButton({ label, onPress, disabled, loading }: PrimaryButt
       disabled={inactive}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: c.buttonBg },
-        inactive && styles.btnDisabled,
-        pressed && !inactive && styles.pressed,
+        {
+          backgroundColor: inactive
+            ? c.buttonDisabledBg
+            : pressed
+              ? c.buttonPressedBg
+              : c.buttonBg,
+          borderColor: c.buttonOutline,
+        },
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={c.buttonText} />
+        <ActivityIndicator color={fg} />
       ) : (
-        <Text style={[styles.text, { color: c.buttonText }]}>{label}</Text>
+        <Text style={[styles.text, { color: fg }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -39,15 +45,10 @@ const styles = StyleSheet.create({
   btn: {
     height: Size.buttonHeight,
     borderRadius: BorderRadius.full,
+    borderWidth: Size.borderWidth,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
-  },
-  btnDisabled: {
-    opacity: Opacity.disabled,
-  },
-  pressed: {
-    opacity: 0.9,
   },
   text: {
     fontSize: FontSize.xl,

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
-import { LabeledInput } from '@/components/auth/labeled-input';
+import { FormTextField } from '@/components/ui/form-field';
 import { PrimaryButton } from '@/components/auth/primary-button';
 import { useAuth } from '@/context/AuthContext';
 import { log } from '@/lib/log';
@@ -40,24 +40,25 @@ export default function AuthNewPasswordScreen() {
       return;
     }
     setNeedsNewPassword(false);
-    router.replace('/(tabs)');
+    router.replace('/');
   };
 
   return (
-    <AuthShell flow="newPassword" title={t('auth.createNewPasswordTitle')} showBack onBack={() => router.back()}>
-      <LabeledInput
+    <AuthShell title={t('auth.createNewPasswordTitle')} showBack onBack={() => router.back()}>
+      <FormTextField
         label={t('auth.passwordLabel')}
+        placeholder={t('auth.newPasswordPlaceholder')}
         value={password}
         onChangeText={(v) => {
           setPassword(v);
           setError(undefined);
         }}
-        placeholder={t('auth.newPasswordPlaceholder')}
         secure
         textContentType="newPassword"
         autoComplete="password-new"
         importantForAutofill="yes"
-        error={inlineHint ?? error}
+        errorMessage={inlineHint ?? error}
+        accessibilityLabel={t('auth.newPasswordPlaceholder')}
       />
       <PrimaryButton
         label={t('auth.savePassword')}

@@ -1,7 +1,13 @@
 {
+  "common": {
+    "cancel": "Скасувати",
+    "choose": "Обрати",
+    "clearField": "Очистити",
+    "dismissSheet": "Закрити"
+  },
   "auth": {
-    "signInOrCreateTitle": "Увійдіть або створіть обліковий запис",
-    "signInOrCreateSubtitle": "Будьте поруч, навіть коли ви далеко.",
+    "signInOrCreateTitle": "Увійти або зареєструватися",
+    "signInOrCreateSubtitle": "Застосунок, який допомагає залишатися ближче, навіть коли ви далеко",
     "continueWithApple": "Продовжити з Apple",
     "or": "або",
     "emailPlaceholder": "Електронна пошта",
@@ -52,6 +58,51 @@
     "hint": "У застосунку виникла помилка. Спробуйте ще раз або перезапустіть.",
     "retry": "Спробувати знову"
   },
+  "onboarding": {
+    "intro": {
+      "title": "Давай налаштуємо профіль",
+      "subtitle": "Це займе не більше хвилини та допоможе зробити простір більш особистим для вас двох.",
+      "cta": "Почати"
+    },
+    "you": {
+      "title": "Про вас",
+      "nameLabel": "Ваше ім’я",
+      "genderLabel": "Стать",
+      "next": "Далі",
+      "dobRowLabel": "День народження",
+      "namePlaceholder": "Ваше ім’я",
+      "nameRequired": "Будь ласка, введіть ім’я.",
+      "genderRequired": "Будь ласка, оберіть варіант.",
+      "dobLabel": "Дата народження (необов’язково)",
+      "dobPlaceholder": "Натисніть, щоб обрати",
+      "clear": "Очистити",
+      "dobClear": "Очистити дату",
+      "dobDone": "Готово",
+      "genderMale": "Чоловік",
+      "genderFemale": "Жінка",
+      "genderOther": "Інше"
+    },
+    "look": {
+      "title": "Ваш вигляд",
+      "colorLabel": "Колір профілю",
+      "changePhoto": "Змінити фото",
+      "cropTitle": "Перемістіть і масштабуйте",
+      "finish": "Готово",
+      "skip": "Пропустити"
+    },
+    "common": {
+      "continue": "Продовжити",
+      "back": "Назад",
+      "stepA11y": "Крок {{current}} з {{total}}"
+    },
+    "logoutTitle": "Вийти?",
+    "logoutMessage": "Щоб продовжити, потрібно буде увійти знову.",
+    "logoutCancel": "Скасувати",
+    "logoutConfirm": "Вийти",
+    "errors": {
+      "syncFailed": "Не вдалося зберегти. Перевірте з’єднання й спробуйте ще раз."
+    }
+  },
   "home": {
     "title": "Головна",
     "subtitle": "Ви увійшли. Тут згодом з’являться створення пари та онбординг.",
@@ -83,14 +134,6 @@
       "animationsBodyLib": "для анімації хвилі рукою.",
       "animationsBodyIos": "Компонент",
       "animationsBodyIosMid": "додає паралакс-ефект для зображення в заголовку."
-    },
-    "pathHome": "app/(tabs)/index.tsx",
-    "pathExplore": "app/(tabs)/explore.tsx",
-    "pathLayout": "app/(tabs)/_layout.tsx",
-    "pathHelloWave": "components/HelloWave.tsx",
-    "pathParallax": "components/ParallaxScrollView.tsx",
-    "suffix2x": "@2x",
-    "suffix3x": "@3x",
-    "hookName": "useColorScheme()"
+    }
   }
 }

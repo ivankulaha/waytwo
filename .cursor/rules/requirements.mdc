@@ -3,4 +3,4 @@ alwaysApply: true
 ---
 
 1. Use requirements from /requirements folder
-2. Design is located at https://www.figma.com/design/10Ej2MZz7j6ALbhJQPfFO6/WayTwo?node-id=58-8&p=f&t=eUEZKl2s0NkRzAfp-0
+2. **Figma (MCP-accessible):** [WayTwo (Copy)](https://www.figma.com/design/NIofouu7Ph9yhZs118YH9j/WayTwo--Copy-) — `fileKey` `NIofouu7Ph9yhZs118YH9j`. **Onboarding UI (v2):** [section `326:5994`](https://www.figma.com/design/NIofouu7Ph9yhZs118YH9j/WayTwo--Copy-?node-id=326-5994) (frames onboarding **07–12**). The original team file (`10Ej2MZz7j6ALbhJQPfFO6`) is the design source of truth when you have access in the Figma app; duplicate or share it with the MCP-connected account for agent tools.

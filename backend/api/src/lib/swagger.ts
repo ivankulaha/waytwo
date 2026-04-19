@@ -23,6 +23,7 @@ export const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
   tags: [
     { name: 'Health', description: 'Health check' },
     { name: 'User', description: 'Current user' },
+    { name: 'Profile', description: 'User profile and onboarding' },
   ],
 };
 

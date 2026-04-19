@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { AuthShell } from '@/components/auth/auth-shell';
 import { PrimaryButton } from '@/components/auth/primary-button';
-import { BorderRadius, FontSize, LineHeight, Size, Spacing } from '@/constants/tokens';
+import { FormTextField } from '@/components/ui/form-field';
+import { FontSize, LineHeight, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
 import { passwordResetRedirectTo } from '@/lib/deeplinks';
 import { log } from '@/lib/log';
@@ -47,7 +48,7 @@ export default function AuthForgotPasswordScreen() {
 
   if (sent) {
     return (
-      <AuthShell flow="forgot" title={t('auth.emailSentTitle')} showBack onBack={() => router.replace('/(auth)')}>
+      <AuthShell title={t('auth.emailSentTitle')} showBack onBack={() => router.replace('/(auth)')}>
         <Text style={[styles.body, { color: c.textSubtle }]}>{t('auth.emailSentBody')}</Text>
         <PrimaryButton label={t('auth.openMail')} onPress={openMail} />
         <Pressable onPress={() => router.replace('/(auth)')}>
@@ -59,53 +60,37 @@ export default function AuthForgotPasswordScreen() {
 
   return (
     <AuthShell
-      flow="forgot"
       title={t('auth.resetPasswordTitle')}
       subtitle={t('auth.resetPasswordSubtitle')}
       showBack
       onBack={() => router.back()}
     >
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: c.inputBg,
-            borderColor: error ? c.errorText : c.inputBorder,
-            color: c.text,
-            marginBottom: error ? Spacing.sm : Spacing.xl,
-          },
-        ]}
+      <FormTextField
+        label={t('auth.emailLabel')}
         placeholder={t('auth.emailPlaceholder')}
-        placeholderTextColor={c.placeholderText}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        textContentType="emailAddress"
-        autoComplete="email"
         value={email}
         onChangeText={(v) => {
           setEmail(v);
           setError(undefined);
         }}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        textContentType="emailAddress"
+        autoComplete="email"
+        errorMessage={error}
+        onClear={() => {
+          setEmail('');
+          setError(undefined);
+        }}
+        clearAccessibilityLabel={t('common.clearField')}
+        accessibilityLabel={t('auth.emailPlaceholder')}
       />
-      {error ? <Text style={[styles.err, { color: c.errorText }]}>{error}</Text> : null}
       <PrimaryButton label={t('auth.continue')} onPress={onSend} disabled={!email.trim()} loading={loading} />
     </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    height: Size.inputHeight,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.xl,
-    fontSize: FontSize.lg,
-    borderWidth: Size.borderWidth,
-  },
-  err: {
-    fontSize: FontSize.sm,
-    marginBottom: Spacing.xl,
-  },
   body: {
     fontSize: FontSize.base,
     lineHeight: LineHeight.snug,

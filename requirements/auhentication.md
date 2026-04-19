@@ -26,9 +26,7 @@ The feature includes core authorization actions:
   - Sign-up failures — generic create-account error.
 - Minimum password length **6** characters (must match Supabase Auth project settings).
 - Password fields use platform autofill hints (`textContentType` / `autoComplete`) for Keychain and password manager compatibility.
-- After successful login, user is redirected to:
-  - The Home Screen if already paired
-  - Couple Setup / Invite Flow if new user 
+- After successful login, the app routes via `index` + `ProfileProvider`: **Home (tabs)** when onboarding is complete; **`/(onboarding)`** when onboarding is not finished. Couple pairing / invite is out of scope for this document.
 
 ## Notifications
   - Password reset email 

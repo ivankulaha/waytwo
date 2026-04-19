@@ -11,6 +11,17 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ExploreTemplateColors, Fonts } from '@/constants/theme';
 import { IconSize, LayoutOffset, Size, Spacing } from '@/constants/tokens';
 
+const exploreTemplateRefs = {
+  pathHome: 'app/(tabs)/index.tsx',
+  pathExplore: 'app/(tabs)/explore.tsx',
+  pathLayout: 'app/(tabs)/_layout.tsx',
+  pathHelloWave: 'components/HelloWave.tsx',
+  pathParallax: 'components/ParallaxScrollView.tsx',
+  imageSuffix2x: '@2x',
+  imageSuffix3x: '@3x',
+  colorSchemeHook: 'useColorScheme()',
+} as const;
+
 export default function TabTwoScreen() {
   const { t } = useTranslation();
 
@@ -41,11 +52,13 @@ export default function TabTwoScreen() {
       <Collapsible title={t('explore.collapsible.routing')}>
         <ThemedText>
           {t('explore.collapsible.routingBody1')}{' '}
-          <ThemedText type="defaultSemiBold">{t('explore.pathHome')}</ThemedText> {t('explore.collapsible.routingBody2')}{' '}
-          <ThemedText type="defaultSemiBold">{t('explore.pathExplore')}</ThemedText>
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.pathHome}</ThemedText>{' '}
+          {t('explore.collapsible.routingBody2')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.pathExplore}</ThemedText>
         </ThemedText>
         <ThemedText>
-          {t('explore.collapsible.routingBody3')} <ThemedText type="defaultSemiBold">{t('explore.pathLayout')}</ThemedText>{' '}
+          {t('explore.collapsible.routingBody3')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.pathLayout}</ThemedText>{' '}
           {t('explore.collapsible.routingBody4')}
         </ThemedText>
         <ExternalLink href="https://docs.expo.dev/router/introduction">
@@ -61,8 +74,11 @@ export default function TabTwoScreen() {
       </Collapsible>
       <Collapsible title={t('explore.collapsible.images')}>
         <ThemedText>
-          {t('explore.collapsible.imagesBody')} <ThemedText type="defaultSemiBold">{t('explore.suffix2x')}</ThemedText> {t('explore.collapsible.routingBody2')}{' '}
-          <ThemedText type="defaultSemiBold">{t('explore.suffix3x')}</ThemedText> {t('explore.collapsible.imagesBodySuffix')}
+          {t('explore.collapsible.imagesBody')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.imageSuffix2x}</ThemedText>{' '}
+          {t('explore.collapsible.routingBody2')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.imageSuffix3x}</ThemedText>{' '}
+          {t('explore.collapsible.imagesBodySuffix')}
         </ThemedText>
         <Image
           source={require('@/assets/images/react-logo.png')}
@@ -74,7 +90,8 @@ export default function TabTwoScreen() {
       </Collapsible>
       <Collapsible title={t('explore.collapsible.theming')}>
         <ThemedText>
-          {t('explore.collapsible.themingBody')} <ThemedText type="defaultSemiBold">{t('explore.hookName')}</ThemedText>{' '}
+          {t('explore.collapsible.themingBody')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.colorSchemeHook}</ThemedText>{' '}
           {t('explore.collapsible.themingBodyHook')}
         </ThemedText>
         <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
@@ -83,7 +100,8 @@ export default function TabTwoScreen() {
       </Collapsible>
       <Collapsible title={t('explore.collapsible.animations')}>
         <ThemedText>
-          {t('explore.collapsible.animationsBody')} <ThemedText type="defaultSemiBold">{t('explore.pathHelloWave')}</ThemedText>{' '}
+          {t('explore.collapsible.animationsBody')}{' '}
+          <ThemedText type="defaultSemiBold">{exploreTemplateRefs.pathHelloWave}</ThemedText>{' '}
           {t('explore.collapsible.animationsBodyMid')}{' '}
           <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
             react-native-reanimated
@@ -93,7 +111,8 @@ export default function TabTwoScreen() {
         {Platform.select({
           ios: (
             <ThemedText>
-              {t('explore.collapsible.animationsBodyIos')} <ThemedText type="defaultSemiBold">{t('explore.pathParallax')}</ThemedText>{' '}
+              {t('explore.collapsible.animationsBodyIos')}{' '}
+              <ThemedText type="defaultSemiBold">{exploreTemplateRefs.pathParallax}</ThemedText>{' '}
               {t('explore.collapsible.animationsBodyIosMid')}
             </ThemedText>
           ),
