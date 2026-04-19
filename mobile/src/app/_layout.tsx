@@ -10,12 +10,22 @@ import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ProfileProvider, useProfile } from '@/context/ProfileContext';
+import { Colors } from '@/constants/theme';
 import { BorderRadius, FontSize, LineHeight, Spacing } from '@/constants/tokens';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import i18n from '@/lib/i18n';
 import { log } from '@/lib/log';
 import { supabase } from '@/lib/supabase';
 import { pathForOnboardingStep } from '@/lib/sync/profile-sync';
+
+const navigationLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: Colors.light.background,
+    card: Colors.light.background,
+  },
+};
 
 function NavigationRoot() {
   const { t } = useTranslation();
@@ -140,7 +150,7 @@ function NavigationRoot() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : navigationLightTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

@@ -201,7 +201,7 @@ export default function OnboardingLookScreen() {
           },
         ]}
       >
-        <Text style={[styles.sectionLabel, { color: c.placeholderText }]}>
+        <Text style={[styles.sectionLabel, { color: c.textSubtle }]}>
           {t('onboarding.look.colorLabel')}
         </Text>
         <ColorPalette value={colorId} onChange={onColorSelect} />

@@ -50,7 +50,7 @@ export function AvatarPicker({
     <Pressable
       accessibilityRole="button"
       onPress={onPickPress}
-      style={[styles.avatarFrame, { backgroundColor: c.surface, borderColor: c.inputBorder }]}
+      style={[styles.avatarFrame, { backgroundColor: c.inputBg, borderColor: c.inputBorder }]}
     >
       {showImage ? (
         <View style={styles.imageClip}>

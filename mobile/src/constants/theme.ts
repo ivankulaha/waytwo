@@ -14,10 +14,10 @@ export const AuthColors = {
   light: {
     gradientEnd: '#ffffff',
     surface: '#ffffff',
-    /** Opaque grouped panel (e.g. onboarding color grid). Not glass — avoids tinting swatches. */
+    /** Opaque grouped panel (e.g. onboarding color grid) on white page. */
     groupedSurface: '#f2f2f7',
     inputBg: '#ffffff',
-    inputBorder: '#ececec',
+    inputBorder: '#C4C4CC',
     inputBorderFocused: '#000000',
     inputLabelFilled: '#7c7c7c',
     text: '#09090b',
@@ -27,11 +27,12 @@ export const AuthColors = {
     errorText: '#dc2626',
     buttonBg: '#ffffff',
     buttonText: '#000000',
-    buttonOutline: '#ececec',
+    buttonOutline: '#C4C4CC',
     buttonPressedBg: '#f0f0f0',
     buttonDisabledBg: '#e4e4e7',
     buttonDisabledText: '#a1a1aa',
     ssoBg: '#000000',
+    /** Intentional: contrast on Apple button. */
     ssoText: '#ffffff',
     ssoPressedBg: '#242424',
     glassBg: 'rgba(0,0,0,0.08)',
