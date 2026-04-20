@@ -95,6 +95,6 @@ States: "Waiting for user action (confirm email, link click)", "User created and
 
 ## Code sync
 
-- **Colors:** `mobile/src/constants/theme.ts` (`AuthColors`, `Colors`, `ExploreTemplateColors`, etc.). **Radial blob gradients:** `mobile/src/constants/gradients.ts` + **`<RadialBlob>`** (Skia in `mobile/src/components/ui/radial-blob.tsx`) — match Figma picker stops 1:1 (`colors` + `positions`). If Figma values differ, prefer Figma for new work and add a short `FIGMA_GAP` note in `tokens.ts` or next to the token.
+- **Colors:** `mobile/src/constants/theme/` (`AppColors`, `AuthSsoColors`, onboarding palette in `onboarding.ts`). **Radial blob gradients:** `mobile/src/constants/gradients.ts` + **`<RadialBlob>`** (Skia in `mobile/src/components/ui/radial-blob.tsx`) — match Figma picker stops 1:1 (`colors` + `positions`). If Figma values differ, prefer Figma for new work and add a short `FIGMA_GAP` note in `tokens.ts` or next to the token.
 - **Layout / type scale:** `mobile/constants/tokens.ts` (`Spacing`, `FontSize`, `LineHeight`, `BorderRadius`, `Size`, `IconSize`, etc.). Replace magic numbers in UI with these exports.
 - **Languages:** Ukrainian and English are supported in app copy (`mobile/locales/`). Figma copy may be Ukrainian-first; keep English keys as the default fallback language in i18n.

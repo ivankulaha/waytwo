@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Back",
     "cancel": "Cancel",
     "choose": "Choose",
     "clearField": "Clear",

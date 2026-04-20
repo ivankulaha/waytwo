@@ -1,7 +1,7 @@
 /**
- * Layout, typography, and radius tokens. Colors live in `theme.ts`.
+ * Layout, typography, and radius tokens. Colors live in `mobile/src/constants/theme/`.
  * Cross-check onboarding with Figma Copy (`NIofouu7Ph9yhZs118YH9j`, section `326:5994`) and `.cursor/rules/figma-design-context.mdc`; auth board `52:791` in that rule for auth-only.
- * Input states (empty / active / filled) and full-width pill button colors are aligned to Figma `344:723` (Input) and `344:682` (Button) in `AuthColors`.
+ * Input states (empty / active / filled) and full-width pill button colors are aligned to Figma `344:723` (Input) and `344:682` (Button) in `AppColors`.
  */
 
 export const Spacing = {

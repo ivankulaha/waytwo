@@ -11,13 +11,13 @@ import { FormSelectField, FormTextField } from '@/components/ui/form-field';
 import { DatePickerField } from '@/components/ui/form-date-field';
 import { FontSize, Spacing } from '@/constants/tokens';
 import { useProfile } from '@/context/ProfileContext';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 import { presentGenderPicker, type OnboardingGender } from '@/lib/onboarding-gender-picker';
 import { log } from '@/lib/log';
 
 export default function OnboardingYouScreen() {
   const { t } = useTranslation();
-  const c = useAuthColors();
+  const c = useAppColors();
   const { profile, updateProfile } = useProfile();
   const [name, setName] = useState('');
   const [gender, setGender] = useState<OnboardingGender | null>(null);

@@ -1,0 +1,54 @@
+import { palette } from '@/constants/theme/palette';
+
+export type AppColorScheme = 'light' | 'dark';
+
+export const AppColors = {
+  light: {
+    gradientEnd: palette.white,
+    surface: palette.white,
+    surfaceElevated: palette.surfaceElevatedLight,
+    inputBg: palette.white,
+    inputBorder: palette.inputBorderLight,
+    inputBorderFocused: palette.black,
+    inputLabelFilled: palette.inputLabelFilledLight,
+    text: palette.textLight,
+    textSubtle: palette.textSubtleLight,
+    placeholderText: palette.placeholderLight,
+    separatorColor: palette.separatorLight,
+    errorText: palette.errorLight,
+    buttonBg: palette.white,
+    buttonText: palette.black,
+    buttonOutline: palette.inputBorderLight,
+    buttonPressedBg: palette.buttonPressedLight,
+    buttonDisabledBg: palette.buttonDisabledBgLight,
+    buttonDisabledText: palette.buttonDisabledTextLight,
+    glassBg: 'rgba(0,0,0,0.08)',
+    glassBorder: 'rgba(0,0,0,0.15)',
+    linkText: palette.linkLight,
+  },
+  dark: {
+    gradientEnd: palette.black,
+    surface: palette.black,
+    surfaceElevated: palette.surfaceElevatedDark,
+    inputBg: palette.black,
+    inputBorder: palette.inputBorderDark,
+    inputBorderFocused: palette.white,
+    inputLabelFilled: palette.inputLabelFilledDark,
+    text: palette.textDark,
+    textSubtle: palette.textSubtleDark,
+    placeholderText: palette.placeholderDark,
+    separatorColor: palette.separatorDark,
+    errorText: palette.errorDark,
+    buttonBg: palette.white,
+    buttonText: palette.black,
+    buttonOutline: 'transparent',
+    buttonPressedBg: palette.buttonPressedDark,
+    buttonDisabledBg: palette.buttonDisabledBgDark,
+    buttonDisabledText: palette.buttonDisabledTextDark,
+    glassBg: 'rgba(255,255,255,0.12)',
+    glassBorder: 'rgba(255,255,255,0.22)',
+    linkText: palette.linkDark,
+  },
+} as const;
+
+export type AppSemanticColors = (typeof AppColors)['light'] | (typeof AppColors)['dark'];

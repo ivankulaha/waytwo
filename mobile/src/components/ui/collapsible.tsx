@@ -4,13 +4,15 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
 import { IconSize, Spacing } from '@/constants/tokens';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorSchemeResolved } from '@/hooks/use-color-scheme-resolved';
+
+/** TODO(legacy-template): Remove with explore / parallax demo screen. */
+const TEMPORARY_COLLAPSE_ICON = { light: '#687076', dark: '#9BA1A6' } as const;
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const theme = useColorScheme() ?? 'light';
+  const scheme = useColorSchemeResolved();
 
   return (
     <ThemedView>
@@ -22,7 +24,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
           name="chevron.right"
           size={IconSize.sm}
           weight="medium"
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
+          color={TEMPORARY_COLLAPSE_ICON[scheme]}
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 

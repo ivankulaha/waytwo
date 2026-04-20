@@ -1,22 +1,15 @@
 import { type ReactNode } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import { RadialBlob } from '@/components/ui/radial-blob';
+import { BackButton } from '@/components/ui/back-button';
 import {
   useRadialBlobSpec,
   type RadialBlobGeometryName,
   type RadialBlobPaletteName,
 } from '@/constants/gradients';
-import { BorderRadius, FontSize, FontWeight, IconSize, LineHeight, Size, Spacing } from '@/constants/tokens';
+import { FontSize, FontWeight, LineHeight, Size, Spacing } from '@/constants/tokens';
 import { useAuthColors } from '@/hooks/use-auth-colors';
 
 /**
@@ -132,17 +125,10 @@ export function AuthShell({
       >
         <View style={styles.inner}>
           {showBack && onBack ? (
-            <Pressable
-              accessibilityRole="button"
+            <BackButton
               onPress={onBack}
-              style={({ pressed }) => [
-                styles.back,
-                { backgroundColor: c.glassBg, borderColor: c.glassBorder },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="chevron-back" size={IconSize.lg} color={c.text} />
-            </Pressable>
+              style={{ alignSelf: 'flex-start', marginBottom: Spacing.xl }}
+            />
           ) : (
             <View style={styles.backPlaceholder} />
           )}
@@ -180,16 +166,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: Spacing['4xl'],
   },
-  back: {
-    alignSelf: 'flex-start',
-    width: Size.iconButton,
-    height: Size.iconButton,
-    borderRadius: BorderRadius.xl,
-    borderWidth: Size.borderWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xl,
-  },
   backPlaceholder: {
     height: Size.iconButton,
     marginBottom: Spacing.xl,
@@ -209,9 +185,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.medium,
     lineHeight: LineHeight.relaxed,
-  },
-  pressed: {
-    opacity: 0.85,
   },
   title: {
     fontSize: FontSize['3xl'],

@@ -19,10 +19,10 @@ Use this together with `.cursor/rules/figma-design-context.mdc` (screen-level sp
 
 | Concern | Source | Notes |
 |--------|--------|--------|
-| Semantic colors | `mobile/src/constants/theme.ts` | Use named exports (`AuthColors`, `Colors`, etc.). |
+| Semantic colors | `mobile/src/constants/theme/` (`AppColors`, `useAppColors`) | Apple SSO uses `AuthSsoColors` via `useAuthColors()`. |
 | Radial blob gradients (auth + onboarding intro) | `mobile/src/constants/gradients.ts` + `mobile/src/components/ui/radial-blob.tsx` | Figma-shaped stops (`colors` + `positions`); render with Skia `<RadialBlob>`. |
 | Layout, type, radii, sizes, opacity | `mobile/src/constants/tokens.ts` | **No raw magic numbers** in UI when a token exists; add a token if Figma introduces a new repeated value. |
-| Figma vs code drift | `FIGMA_GAP` in `tokens.ts` or next to a constant in `theme.ts` | Document intentional differences; prefer aligning new work to Figma when product agrees. |
+| Figma vs code drift | `FIGMA_GAP` in `tokens.ts` or next to a constant under `theme/` | Document intentional differences; prefer aligning new work to Figma when product agrees. |
 
 ## 2. Component library
 

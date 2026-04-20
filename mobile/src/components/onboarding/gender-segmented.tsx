@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BorderRadius, FontSize, FontWeight, Size, Spacing } from '@/constants/tokens';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 type Gender = 'male' | 'female' | 'other';
 
@@ -13,7 +13,7 @@ type GenderSegmentedProps = {
 
 export function GenderSegmented({ value, onChange }: GenderSegmentedProps) {
   const { t } = useTranslation();
-  const c = useAuthColors();
+  const c = useAppColors();
   const options: { key: Gender; label: string }[] = [
     { key: 'male', label: t('onboarding.you.genderMale') },
     { key: 'female', label: t('onboarding.you.genderFemale') },

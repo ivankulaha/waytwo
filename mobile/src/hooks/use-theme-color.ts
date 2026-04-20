@@ -1,21 +1,37 @@
 /**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
+ * TODO(legacy-template): Remove with new home / tab redesign. Expo starter palette only —
+ * not part of AppColors. Used by ThemedText, ThemedView, parallax demo, and (tabs)/index.
  */
+import { useColorSchemeResolved } from '@/hooks/use-color-scheme-resolved';
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const LegacyTemplateColors = {
+  light: {
+    text: '#11181C',
+    background: '#fff',
+    tint: '#0a7ea4',
+    icon: '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: '#0a7ea4',
+  },
+  dark: {
+    text: '#ECEDEE',
+    background: '#151718',
+    tint: '#fff',
+    icon: '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: '#fff',
+  },
+} as const;
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+  colorName: keyof typeof LegacyTemplateColors.light & keyof typeof LegacyTemplateColors.dark,
 ) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const scheme = useColorSchemeResolved();
   const colorFromProps = props[scheme];
 
   if (colorFromProps) {
     return colorFromProps;
-  } else {
-    return Colors[scheme][colorName];
   }
+  return LegacyTemplateColors[scheme][colorName];
 }

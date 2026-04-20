@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { BorderRadius, FontSize, IconSize, LineHeight, Opacity, Size, Spacing } from '@/constants/tokens';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 export function FormFieldFloatingText({
   filled,
@@ -23,7 +23,7 @@ export function FormFieldFloatingText({
   fieldLabel: string;
   valueLine: string;
 }) {
-  const c = useAuthColors();
+  const c = useAppColors();
   if (!filled) {
     return (
       <Text style={[styles.staticText, { color: c.placeholderText }]} numberOfLines={1}>
@@ -81,7 +81,7 @@ export function FormTextField({
   importantForAutofill,
   accessibilityLabel,
 }: FormTextFieldProps) {
-  const c = useAuthColors();
+  const c = useAppColors();
   const [showSecret, setShowSecret] = useState(false);
   const [focused, setFocused] = useState(false);
   const isSecure = secure && !showSecret;
@@ -176,7 +176,7 @@ export function FormSelectField({
   error,
   accessibilityLabel,
 }: FormSelectFieldProps) {
-  const c = useAuthColors();
+  const c = useAppColors();
   const borderColor = error ? c.errorText : c.inputBorder;
   const filled = Boolean(value?.trim());
   const showClear = Boolean(filled && onClear);
@@ -219,7 +219,7 @@ type FormRowStaticTextProps = {
 };
 
 export function FormRowStaticText({ text, muted }: FormRowStaticTextProps) {
-  const c = useAuthColors();
+  const c = useAppColors();
   return (
     <Text style={[styles.staticText, { color: muted ? c.placeholderText : c.text }]} numberOfLines={1}>
       {text}

@@ -1,3 +1,7 @@
+/**
+ * TODO(legacy-template): Demo / template tab — remove when the new home screen is designed.
+ * Header colors and layout offsets are local to this file so they never leak into AppColors.
+ */
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +12,13 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ExploreTemplateColors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
 import { IconSize, LayoutOffset, Size, Spacing } from '@/constants/tokens';
+
+const TEMPORARY_EXPLORE_HEADER = {
+  headerBackground: { light: '#D0D0D0', dark: '#353636' } as const,
+  headerIcon: '#808080',
+} as const;
 
 const exploreTemplateRefs = {
   pathHome: 'app/(tabs)/index.tsx',
@@ -28,13 +37,13 @@ export default function TabTwoScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{
-        light: ExploreTemplateColors.headerBackground.light,
-        dark: ExploreTemplateColors.headerBackground.dark,
+        light: TEMPORARY_EXPLORE_HEADER.headerBackground.light,
+        dark: TEMPORARY_EXPLORE_HEADER.headerBackground.dark,
       }}
       headerImage={
         <IconSymbol
           size={IconSize.hero}
-          color={ExploreTemplateColors.headerIcon}
+          color={TEMPORARY_EXPLORE_HEADER.headerIcon}
           name="chevron.left.forwardslash.chevron.right"
           style={styles.headerImage}
         />
@@ -124,7 +133,7 @@ export default function TabTwoScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: ExploreTemplateColors.headerIcon,
+    color: TEMPORARY_EXPLORE_HEADER.headerIcon,
     bottom: LayoutOffset.exploreHeaderImageBottom,
     left: LayoutOffset.exploreHeaderImageLeft,
     position: 'absolute',

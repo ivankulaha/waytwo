@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { BorderRadius, FontSize, FontWeight, Size, Spacing } from '@/constants/tokens';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 type OnboardingNextButtonProps = {
   label: string;
@@ -11,7 +11,7 @@ type OnboardingNextButtonProps = {
 };
 
 export function OnboardingNextButton({ label, onPress, disabled, loading }: OnboardingNextButtonProps) {
-  const c = useAuthColors();
+  const c = useAppColors();
   const inactive = disabled || loading;
   const enabled = !inactive;
 

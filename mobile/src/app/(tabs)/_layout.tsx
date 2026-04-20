@@ -4,22 +4,26 @@ import { useTranslation } from 'react-i18next';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
 import { Size } from '@/constants/tokens';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorSchemeResolved } from '@/hooks/use-color-scheme-resolved';
+
+/** TODO(legacy-template): Delete with new tab/home redesign — not part of AppColors. */
+const TEMPORARY_TAB_BAR_COLORS = {
+  light: { tint: '#0a7ea4', background: '#fff' },
+  dark: { tint: '#fff', background: '#151718' },
+} as const;
 
 export default function TabLayout() {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+  const scheme = useColorSchemeResolved();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[scheme].tint,
+        tabBarActiveTintColor: TEMPORARY_TAB_BAR_COLORS[scheme].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarStyle: { backgroundColor: Colors[scheme].background },
+        tabBarStyle: { backgroundColor: TEMPORARY_TAB_BAR_COLORS[scheme].background },
       }}>
       <Tabs.Screen
         name="index"

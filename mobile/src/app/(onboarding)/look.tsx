@@ -10,11 +10,12 @@ import { PrimaryButton } from '@/components/auth/primary-button';
 import { AvatarPicker } from '@/components/onboarding/avatar-picker';
 import { ColorPalette } from '@/components/onboarding/color-palette';
 import { OnboardingShell } from '@/components/onboarding/onboarding-shell';
+import { GlassSurface } from '@/components/ui/glass-surface';
 import { OnboardingPalette } from '@/constants/theme';
-import { BorderRadius, FontSize, FontWeight, LineHeight, Size, Spacing } from '@/constants/tokens';
+import { BorderRadius, FontSize, FontWeight, LineHeight, Spacing } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 import { log } from '@/lib/log';
 
 function hexForColorId(id: string | null): string | undefined {
@@ -37,7 +38,7 @@ async function waitForPickerDismissal() {
 
 export default function OnboardingLookScreen() {
   const { t } = useTranslation();
-  const c = useAuthColors();
+  const c = useAppColors();
   const { user } = useAuth();
   const { profile, updateProfile, completeOnboarding, pushAvatarFromPicker } = useProfile();
   const [colorId, setColorId] = useState<string | null>(null);
@@ -192,20 +193,12 @@ export default function OnboardingLookScreen() {
         glowColor={glowColor}
         onPickPress={() => void pickImage()}
       />
-      <View
-        style={[
-          styles.colorCard,
-          {
-            backgroundColor: c.groupedSurface,
-            borderColor: c.inputBorder,
-          },
-        ]}
-      >
+      <GlassSurface style={styles.colorCard}>
         <Text style={[styles.sectionLabel, { color: c.textSubtle }]}>
           {t('onboarding.look.colorLabel')}
         </Text>
         <ColorPalette value={colorId} onChange={onColorSelect} />
-      </View>
+      </GlassSurface>
       <View style={styles.footer}>
         <PrimaryButton label={t('onboarding.look.finish')} onPress={() => void finish()} loading={loading} />
         <Pressable accessibilityRole="button" onPress={() => void skip()} disabled={loading} style={styles.skip}>
@@ -219,7 +212,6 @@ export default function OnboardingLookScreen() {
 const styles = StyleSheet.create({
   colorCard: {
     borderRadius: BorderRadius.onboardingColorCard,
-    borderWidth: Size.borderWidth,
     padding: Spacing.xl,
     gap: Spacing['3xl'],
     marginBottom: Spacing['2xl'],

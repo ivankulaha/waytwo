@@ -10,7 +10,6 @@ import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ProfileProvider, useProfile } from '@/context/ProfileContext';
-import { Colors } from '@/constants/theme';
 import { BorderRadius, FontSize, LineHeight, Spacing } from '@/constants/tokens';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import i18n from '@/lib/i18n';
@@ -18,12 +17,15 @@ import { log } from '@/lib/log';
 import { supabase } from '@/lib/supabase';
 import { pathForOnboardingStep } from '@/lib/sync/profile-sync';
 
+/** TODO(legacy-template): Remove when root navigation theme is driven by AppColors. */
+const TEMPORARY_NAV_STACK_LIGHT_BACKGROUND = '#ffffff';
+
 const navigationLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: Colors.light.background,
-    card: Colors.light.background,
+    background: TEMPORARY_NAV_STACK_LIGHT_BACKGROUND,
+    card: TEMPORARY_NAV_STACK_LIGHT_BACKGROUND,
   },
 };
 

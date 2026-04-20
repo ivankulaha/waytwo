@@ -4,9 +4,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormSelectField, FormTextField } from '@/components/ui/form-field';
-import { AuthColors } from '@/constants/theme';
 import { BorderRadius, FontSize, FontWeight, Overlay, Spacing } from '@/constants/tokens';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
+import { useColorSchemeResolved } from '@/hooks/use-color-scheme-resolved';
 import { log } from '@/lib/log';
 
 function parseIsoDate(s: string | null): Date | null {
@@ -39,7 +39,8 @@ export function DatePickerField({
   clearAccessibilityLabel,
   sheetBackdropAccessibilityLabel,
 }: DatePickerFieldProps) {
-  const c = useAuthColors();
+  const c = useAppColors();
+  const colorScheme = useColorSchemeResolved();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [iosPickerDate, setIosPickerDate] = useState(() => new Date(2000, 0, 1));
@@ -121,7 +122,7 @@ export function DatePickerField({
                 display="spinner"
                 maximumDate={new Date()}
                 textColor={c.text}
-                themeVariant={c.surface === AuthColors.dark.surface ? 'dark' : 'light'}
+                themeVariant={colorScheme}
                 onChange={(event, date) => {
                   if (event.type === 'dismissed') return;
                   if (!date) return;

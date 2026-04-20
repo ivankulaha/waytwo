@@ -1,7 +1,13 @@
-import { AuthColors, type AuthSemanticColors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AppColors, AuthSsoColors, type AppSemanticColors } from '@/constants/theme';
+import { useColorSchemeResolved } from '@/hooks/use-color-scheme-resolved';
 
-export function useAuthColors(): AuthSemanticColors {
-  const scheme = useColorScheme() ?? 'light';
-  return AuthColors[scheme === 'dark' ? 'dark' : 'light'];
+export type AuthScreenColors = AppSemanticColors & {
+  ssoBg: string;
+  ssoText: string;
+  ssoPressedBg: string;
+};
+
+export function useAuthColors(): AuthScreenColors {
+  const scheme = useColorSchemeResolved();
+  return { ...AppColors[scheme], ...AuthSsoColors[scheme] };
 }

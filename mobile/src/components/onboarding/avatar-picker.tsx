@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { OnboardingAvatarGlowGradientStops, OnboardingAvatarInitialsColor } from '@/constants/theme';
 import { FontSize, FontWeight, LineHeight, Size, Spacing } from '@/constants/tokens';
 import { avatarPublicObjectUrl } from '@/lib/avatar-path';
-import { useAuthColors } from '@/hooks/use-auth-colors';
+import { useAppColors } from '@/hooks/use-app-colors';
 
 type AvatarPickerProps = {
   displayName: string;
@@ -35,7 +35,7 @@ export function AvatarPicker({
   onPickPress,
 }: AvatarPickerProps) {
   const { t } = useTranslation();
-  const c = useAuthColors();
+  const c = useAppColors();
   const letter = initials(displayName);
   const remoteUrl =
     remoteUserId && remotePhotoPath
