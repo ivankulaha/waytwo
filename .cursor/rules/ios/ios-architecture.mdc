@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+1. Use reducer-driven architecture for state transitions. Every feature in `mobile-ios/WayTwo/Features/` must define explicit `State`, `Action`, and `reduce` behavior.
+2. Route external systems (Supabase, Keychain, SwiftData, reachability, file storage) through dependency clients in `mobile-ios/WayTwo/Core/` instead of calling frameworks directly from views.
+3. Keep navigation state in root app state and derive visible screens from state, not from ad-hoc imperative pushes.
+4. Async operations must return typed results and map failures into domain errors before UI handling.
+5. Keep files focused: one feature reducer + one main view per file when practical; split large features into child reducers/views.
+6. Never couple view rendering logic with persistence/networking internals. Views dispatch actions; dependencies perform side effects.

@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+1. Build iOS UI with SwiftUI primitives and shared design tokens in `mobile-ios/WayTwo/Core/Design/`. Do not hardcode repeated spacing, radius, typography, or color values; add and reuse typed tokens.
+2. All user-facing copy must come from String Catalogs (`mobile-ios/WayTwo/Resources/Localizable.xcstrings`) with both `en` and `uk` translations added together.
+3. Use structured logging through `mobile-ios/WayTwo/Core/Monitoring/AppLogger.swift`. Do not use `print()` for runtime logging. Never log secrets, access tokens, auth codes, deep-link payloads, or personal data.
+4. Any async screen or flow must surface recoverable errors in UI and record non-sensitive diagnostics in logs.
+5. Keep feature code organized by domain folders under `mobile-ios/WayTwo/Features/` with isolated reducers, actions, and views.
+6. Prefer platform-native APIs over cross-platform abstractions for storage, networking reachability, navigation, haptics, and media access.

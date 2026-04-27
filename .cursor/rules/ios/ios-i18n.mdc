@@ -1,0 +1,11 @@
+---
+description: Internationalization for the WayTwo native iOS app (en / uk)
+globs: mobile-ios/**/*.swift, mobile-ios/**/*.xcstrings
+alwaysApply: false
+---
+
+1. Use String Catalogs (`mobile-ios/WayTwo/Resources/Localizable.xcstrings`) as the only source for user-facing strings.
+2. Add keys in both English (`en`) and Ukrainian (`uk`) in the same change.
+3. Use semantic key groups (`auth.*`, `onboarding.*`, `tabs.*`, `profile.*`, `home.*`, `validation.*`) to match existing product language domains.
+4. Do not hardcode display text in SwiftUI views except temporary developer-only previews.
+5. When introducing validation or server error messages, map to stable localization keys before presenting to users.
