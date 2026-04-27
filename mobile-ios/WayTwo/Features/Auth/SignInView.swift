@@ -1,12 +1,12 @@
 import SwiftUI
 import AuthenticationServices
 import CryptoKit
+import UIKit
 
 struct SignInView: View {
     @Binding var state: AuthReducer.State
     let onContinueEmail: () -> Void
     let onAppleSignIn: (_ idToken: String, _ nonce: String) -> Void
-    @FocusState private var emailFocused: Bool
 
     private enum Layout {
         static let topHeaderOffset: CGFloat = Tokens.Size.authHeaderTopOffset
@@ -52,7 +52,14 @@ struct SignInView: View {
                 VStack(spacing: Tokens.Spacing.xl) {
                     appleButton
                     separator
-                    emailField
+                    AppTextField(
+                        placeholder: "auth.emailPlaceholder",
+                        text: $state.email,
+                        keyboardType: .emailAddress,
+                        autocapitalization: .never,
+                        autocorrectionDisabled: true,
+                        textContentType: .username
+                    )
                     PrimaryButton(
                         titleKey: "auth.continue",
                         isLoading: state.isLoading,
@@ -112,24 +119,6 @@ struct SignInView: View {
                 .fill(AppColors.separator)
                 .frame(height: Tokens.Size.dividerThickness)
         }
-    }
-
-    private var emailField: some View {
-        TextField(String(localized: "auth.emailPlaceholder"), text: $state.email)
-            .focused($emailFocused)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled(true)
-            .keyboardType(.emailAddress)
-            .font(.system(size: Tokens.FontSize.lg, weight: .medium))
-            .foregroundStyle(AppColors.textPrimary)
-            .tint(AppColors.textPrimary)
-            .padding(.horizontal, Tokens.Spacing.xl)
-            .frame(height: Tokens.Size.inputHeight)
-            .background(AppColors.inputBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: Tokens.Radius.md)
-                    .stroke(emailFocused ? AppColors.inputBorderFocused : AppColors.inputBorder, lineWidth: 1)
-            )
     }
 
     private func sha256(_ input: String) -> String {

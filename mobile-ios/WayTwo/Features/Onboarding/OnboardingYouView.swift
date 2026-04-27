@@ -7,21 +7,21 @@ struct OnboardingYouView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Tokens.Spacing.xl) {
-                TextField("onboarding.you.namePlaceholder", text: $state.name)
-                    .padding(Tokens.Spacing.xl)
-                    .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.lg).stroke(AppColors.inputBorder))
+                AppTextField(
+                    placeholder: "onboarding.you.namePlaceholder",
+                    text: $state.name
+                )
                 Picker("onboarding.you.genderLabel", selection: $state.gender) {
                     Text("onboarding.you.genderMale").tag("male")
                     Text("onboarding.you.genderFemale").tag("female")
                     Text("onboarding.you.genderOther").tag("other")
                 }
                 .pickerStyle(.segmented)
-                TextField("onboarding.you.dobPlaceholder", text: $state.dateOfBirth)
-                    .padding(Tokens.Spacing.xl)
-                    .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.lg).stroke(AppColors.inputBorder))
-                Button("onboarding.you.next", action: onNext)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                AppTextField(
+                    placeholder: "onboarding.you.dobPlaceholder",
+                    text: $state.dateOfBirth
+                )
+                PrimaryButton(titleKey: "onboarding.you.next", action: onNext)
                 if let errorKey = state.errorKey {
                     Text(LocalizedStringKey(errorKey))
                         .foregroundStyle(AppColors.error)

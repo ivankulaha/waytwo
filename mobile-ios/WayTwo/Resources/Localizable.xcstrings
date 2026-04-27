@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "auth.appleSignInError" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -267,6 +270,22 @@
         }
       }
     },
+    "auth.navSignIn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вхід"
+          }
+        }
+      }
+    },
     "auth.newPasswordPlaceholder" : {
       "localizations" : {
         "en" : {
@@ -396,7 +415,6 @@
       }
     },
     "common.back" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

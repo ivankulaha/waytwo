@@ -40,6 +40,7 @@ enum Tokens {
         static let swatchTap: CGFloat = 48
         static let swatchInner: CGFloat = 36
         static let dividerThickness: CGFloat = 1
+        static let iconButtonSize: CGFloat = 44
     }
 
     enum Opacity {

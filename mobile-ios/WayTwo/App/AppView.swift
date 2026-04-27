@@ -18,27 +18,131 @@ struct AppView: View {
 
     private var authFlow: some View {
         NavigationStack {
-            switch state.auth.flow {
-            case .email:
-                SignInView(state: $state.auth, onContinueEmail: continueWithEmail, onAppleSignIn: signInWithApple)
-            case .password:
-                SignInPasswordView(state: $state.auth, onSubmit: signInPassword, onForgot: { state.auth.flow = .forgot })
-            case .signup:
-                SignUpView(state: $state.auth, onSignUp: signUp)
-            case .forgot:
-                ForgotPasswordView(state: $state.auth, onSubmit: resetPassword)
-            case .emailSent:
-                VStack(spacing: Tokens.Spacing.xl) {
-                    Text("auth.emailSentTitle").font(.title2.bold()).foregroundStyle(AppColors.textPrimary)
-                    Text("auth.emailSentBody").multilineTextAlignment(.center).foregroundStyle(AppColors.textSecondary)
-                    Button("auth.backToSignIn") { state.auth.flow = .email }
+            SignInView(state: $state.auth, onContinueEmail: continueWithEmail, onAppleSignIn: signInWithApple)
+                .navigationTitle("auth.navSignIn")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(isPresented: passwordDestinationBinding) {
+                    SignInPasswordView(
+                        state: $state.auth,
+                        onSubmit: signInPassword,
+                        onForgot: { state.auth.flow = .forgot }
+                    )
+                    .navigationTitle("auth.enterPasswordTitle")
+                    .authScreenWithoutVisibleNavigationTitle()
+                    .navigationDestination(isPresented: forgotDestinationBinding) {
+                        ForgotPasswordView(
+                            state: $state.auth,
+                            onSubmit: resetPassword
+                        )
+                        .navigationTitle("auth.resetPasswordTitle")
+                        .authScreenWithoutVisibleNavigationTitle()
+                        .navigationDestination(isPresented: emailSentDestinationBinding) {
+                            emailSentView
+                                .navigationTitle("auth.emailSentTitle")
+                                .authScreenWithoutVisibleNavigationTitle()
+                        }
+                    }
                 }
-                .padding(Tokens.Spacing.x3l)
-                .background(AppColors.surface.ignoresSafeArea())
-            case .newPassword:
-                NewPasswordView(state: $state.auth, onSave: updatePassword)
+                .navigationDestination(isPresented: signUpDestinationBinding) {
+                    SignUpView(
+                        state: $state.auth,
+                        onSignUp: signUp
+                    )
+                    .navigationTitle("auth.createAccountTitle")
+                    .authScreenWithoutVisibleNavigationTitle()
+                }
+                .navigationDestination(isPresented: newPasswordDestinationBinding) {
+                    NewPasswordView(state: $state.auth, onSave: updatePassword)
+                        .navigationTitle("auth.createNewPasswordTitle")
+                        .authScreenWithoutVisibleNavigationTitle()
+                }
+        }
+    }
+
+    private var passwordDestinationBinding: Binding<Bool> {
+        Binding(
+            get: { state.auth.flow == .password || state.auth.flow == .forgot || state.auth.flow == .emailSent },
+            set: { isPresented in
+                guard !isPresented else { return }
+                if state.auth.flow == .password {
+                    state.auth.flow = .email
+                    state.auth.password = ""
+                    state.auth.errorKey = nil
+                }
+            }
+        )
+    }
+
+    private var signUpDestinationBinding: Binding<Bool> {
+        Binding(
+            get: { state.auth.flow == .signup },
+            set: { isPresented in
+                guard !isPresented else { return }
+                if state.auth.flow == .signup {
+                    state.auth.flow = .email
+                    state.auth.password = ""
+                    state.auth.errorKey = nil
+                }
+            }
+        )
+    }
+
+    private var forgotDestinationBinding: Binding<Bool> {
+        Binding(
+            get: { state.auth.flow == .forgot || state.auth.flow == .emailSent },
+            set: { isPresented in
+                guard !isPresented else { return }
+                if state.auth.flow == .forgot {
+                    state.auth.flow = .password
+                    state.auth.errorKey = nil
+                }
+            }
+        )
+    }
+
+    private var emailSentDestinationBinding: Binding<Bool> {
+        Binding(
+            get: { state.auth.flow == .emailSent },
+            set: { isPresented in
+                guard !isPresented else { return }
+                if state.auth.flow == .emailSent {
+                    state.auth.flow = .forgot
+                    state.auth.errorKey = nil
+                }
+            }
+        )
+    }
+
+    private var newPasswordDestinationBinding: Binding<Bool> {
+        Binding(
+            get: { state.auth.flow == .newPassword },
+            set: { isPresented in
+                guard !isPresented else { return }
+                if state.auth.flow == .newPassword {
+                    state.auth.flow = .email
+                    state.auth.newPassword = ""
+                    state.auth.errorKey = nil
+                }
+            }
+        )
+    }
+
+    private var emailSentView: some View {
+        VStack(spacing: Tokens.Spacing.xl) {
+            Text("auth.emailSentTitle")
+                .font(.title2.bold())
+                .foregroundStyle(AppColors.textPrimary)
+            Text("auth.emailSentBody")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColors.textSecondary)
+            Button("auth.backToSignIn") {
+                state.auth.flow = .email
+                state.auth.password = ""
+                state.auth.newPassword = ""
             }
         }
+        .padding(Tokens.Spacing.x3l)
+        .background(AppColors.surface.ignoresSafeArea())
     }
 
     private var onboardingFlow: some View {
@@ -92,6 +196,7 @@ struct AppView: View {
         Task {
             do {
                 let registered = try await container.api.checkEmailRegistered(email: state.auth.email)
+                state.auth.password = ""
                 state.auth.flow = registered ? .password : .signup
                 state.auth.errorKey = nil
             } catch {
@@ -105,6 +210,7 @@ struct AppView: View {
             do {
                 let session = try await container.supabase.signInWithPassword(email: state.auth.email, password: state.auth.password)
                 _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
+                state.auth.password = ""
                 state.isAuthenticated = true
                 state.auth.errorKey = nil
             } catch {
@@ -117,6 +223,7 @@ struct AppView: View {
         Task {
             do {
                 try await container.supabase.signUp(email: state.auth.email, password: state.auth.password)
+                state.auth.password = ""
                 state.auth.flow = .email
                 state.auth.errorKey = nil
             } catch {
@@ -140,6 +247,7 @@ struct AppView: View {
         Task {
             do {
                 try await container.supabase.updatePassword(state.auth.newPassword)
+                state.auth.newPassword = ""
                 state.auth.flow = .email
             } catch {
                 state.auth.errorKey = "auth.couldNotUpdatePassword"
@@ -173,5 +281,19 @@ struct AppView: View {
         } catch {
             state.settings.errorKey = "error.title"
         }
+    }
+}
+
+private extension View {
+    /// Keeps `navigationTitle` for back-stack context, but removes the visible title area in the navigation bar.
+    func authScreenWithoutVisibleNavigationTitle() -> some View {
+        navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                        .accessibilityHidden(true)
+                }
+            }
     }
 }
