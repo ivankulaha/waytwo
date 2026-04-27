@@ -17,6 +17,9 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'person.badge.plus': 'person-add',
+  'heart.fill': 'favorite',
+  'person.circle.fill': 'account-circle',
 } as const satisfies Record<string, MaterialName>;
 
 type IconSymbolName = keyof typeof MAPPING;
@@ -31,6 +34,7 @@ export function IconSymbol({
   size = 24,
   color,
   style,
+  weight: _weight,
 }: {
   name: IconSymbolName;
   size?: number;

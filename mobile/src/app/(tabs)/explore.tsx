@@ -3,8 +3,9 @@
  * Header colors and layout offsets are local to this file so they never leak into AppColors.
  */
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -13,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
-import { IconSize, LayoutOffset, Size, Spacing } from '@/constants/tokens';
+import { IconSize, LayoutOffset, MainTabBarTokens, Size, Spacing } from '@/constants/tokens';
 
 const TEMPORARY_EXPLORE_HEADER = {
   headerBackground: { light: '#D0D0D0', dark: '#353636' } as const,
@@ -33,8 +34,11 @@ const exploreTemplateRefs = {
 
 export default function TabTwoScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const tabBarClearance = insets.bottom + MainTabBarTokens.contentClearance;
 
   return (
+    <View style={[styles.screen, { paddingBottom: tabBarClearance }]}>
     <ParallaxScrollView
       headerBackgroundColor={{
         light: TEMPORARY_EXPLORE_HEADER.headerBackground.light,
@@ -128,10 +132,14 @@ export default function TabTwoScreen() {
         })}
       </Collapsible>
     </ParallaxScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   headerImage: {
     color: TEMPORARY_EXPLORE_HEADER.headerIcon,
     bottom: LayoutOffset.exploreHeaderImageBottom,

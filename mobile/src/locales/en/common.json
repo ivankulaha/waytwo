@@ -47,12 +47,17 @@
   },
   "tabs": {
     "home": "Home",
-    "explore": "Explore"
+    "explore": "Explore",
+    "heartbeat": "Heartbeat"
   },
   "modal": {
     "title": "Modal",
     "screenTitle": "This is a modal",
     "goHome": "Go to home screen"
+  },
+  "settings": {
+    "title": "Settings",
+    "logOut": "Log out"
   },
   "error": {
     "title": "Something went wrong",
@@ -105,9 +110,7 @@
     }
   },
   "home": {
-    "title": "Home",
-    "subtitle": "You are signed in. Pairing and onboarding will live here later.",
-    "signOut": "Sign out"
+    "invitePartner": "Invite partner"
   },
   "explore": {
     "title": "Explore",

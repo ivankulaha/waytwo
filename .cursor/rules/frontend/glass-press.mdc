@@ -1,0 +1,57 @@
+# Glass surface press animation
+
+All interactive glass surfaces must implement the same press feedback pattern used in `BackButton` (`mobile/src/components/ui/back-button.tsx`).
+
+## Rule
+
+Any `GlassSurface` that wraps a tappable action **must** use the `onPress` prop (plus `accessibilityRole` and `accessibilityLabel`). Do **not** nest a bare `Pressable` inside a non-interactive `GlassSurface` for the primary tap target.
+
+## How it works
+
+### Native glass (iOS 26+, `isLiquidGlassAvailable() && isGlassEffectAPIAvailable()`)
+
+`GlassSurface` renders `Pressable` as the outer node so the gesture stream reaches `GlassView isInteractive`, firing the native iOS 26 water-drop morph and long-press liquid deformation automatically.
+
+**Children must be placed INSIDE `GlassView`** (not as siblings after it). The native `GlassView` mounts React Native children into `UIVisualEffectView.contentView`. When children are siblings in front of `GlassView`, UIKit hit-testing returns them as the touch target instead of the glass view — `UIGlassEffect.isInteractive` never receives the UIKit touch events and the deformation does not fire.
+
+### Glass merging (`GlassContainer`)
+
+Wrap sibling glass elements in `GlassContainer` (from `expo-glass-effect`) so iOS 26 merges them visually when they come within `spacing` distance of each other. Use `MainTabBarTokens.glassContainerSpacing` (24 pt) for the tab bar chrome. Elements that should merge (e.g., pill + profile button, or tab bar + invite button) must share a common `GlassContainer` ancestor.
+
+```tsx
+<GlassSurface
+  onPress={handlePress}
+  accessibilityRole="button"
+  accessibilityLabel={t('home.invitePartner')}
+  style={{ width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' }}>
+  <InviteIcon height={44} />
+</GlassSurface>
+```
+
+### Fallback (Android / iOS < 26)
+
+`GlassSurface` wraps in `Animated.View` and applies a `withSpring` scale of `Animation.glassPressScale` (`0.88`) with the `Animation.glassPressSpring` config on `pressIn`/`pressOut`.
+
+### Shared-container exception
+
+When multiple tappable elements share **one** `GlassSurface` container (e.g. tab buttons inside a pill), each button must be extracted as its own component and receive its own `GlassView isInteractive` (native glass path) or `Animated.View` spring (fallback). Extract each button as its own component that checks `isLiquidGlassAvailable()` and branches the same way `BackButton` and `TabButton` do (see `main-tab-bar.tsx`).
+
+**Never apply the spring-scale `Animated.View` wrapper on the native-glass path.** On iOS 26 that produces a jarring "jump" instead of the expected liquid morph. The spring scale is strictly a non-glass fallback.
+
+## Tokens
+
+| Token | Value | Purpose |
+|---|---|---|
+| `Animation.glassPressScale` | `0.88` | Target scale on press |
+| `Animation.glassPressSpring` | `{ damping: 12, stiffness: 300 }` | Spring config |
+
+These must not be hardcoded inline — always import from `@/constants/tokens`.
+
+## Checklist
+
+- [ ] Interactive glass uses `GlassSurface onPress={}` (or follows the shared-container exception)
+- [ ] Children rendered **inside** `GlassView`, never as siblings after it
+- [ ] Sibling glass elements share a `GlassContainer` ancestor with `spacing` set
+- [ ] `accessibilityRole` and `accessibilityLabel` are set
+- [ ] No bare `Pressable` with only `opacity` change wraps a `GlassSurface`
+- [ ] Haptics (`Haptics.impactAsync(Light)`) on `onPress` for iOS buttons

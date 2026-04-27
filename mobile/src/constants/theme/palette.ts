@@ -31,4 +31,11 @@ export const palette = {
   ssoBgDark: '#ffffff',
   ssoTextDark: '#000000',
   ssoPressedDark: '#e0e0e0',
+  /** Figma home @light (node 349:8414). */
+  homeBgLight: '#f6f0ff',
+  /** Onboarding swatch `c9`; home glow when `color_id` is missing. */
+  profileAccentFallback: '#8B5CF6',
+  /** Frosted veil on top of native invite glass (pairing). */
+  invitePartnerGlassSheenLight: 'rgba(255,255,255,0.48)',
+  invitePartnerGlassSheenDark: 'rgba(255,255,255,0.14)',
 } as const;

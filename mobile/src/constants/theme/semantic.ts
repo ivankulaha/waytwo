@@ -25,6 +25,9 @@ export const AppColors = {
     glassBg: 'rgba(0,0,0,0.08)',
     glassBorder: 'rgba(0,0,0,0.15)',
     linkText: palette.linkLight,
+    homeBg: palette.homeBgLight,
+    profileAccentFallback: palette.profileAccentFallback,
+    invitePartnerGlassSheen: palette.invitePartnerGlassSheenLight,
   },
   dark: {
     gradientEnd: palette.black,
@@ -48,6 +51,9 @@ export const AppColors = {
     glassBg: 'rgba(255,255,255,0.12)',
     glassBorder: 'rgba(255,255,255,0.22)',
     linkText: palette.linkDark,
+    homeBg: palette.black,
+    profileAccentFallback: palette.profileAccentFallback,
+    invitePartnerGlassSheen: palette.invitePartnerGlassSheenDark,
   },
 } as const;
 

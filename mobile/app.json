@@ -35,6 +35,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-bottom-tabs",
       "expo-secure-store",
       "expo-apple-authentication",
       [

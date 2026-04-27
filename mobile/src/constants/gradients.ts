@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { palette } from '@/constants/theme/palette';
+import { parseHexRgb, rgba } from '@/lib/color-rgba';
+
 export type ColorScheme = 'light' | 'dark';
 
 /**
@@ -34,6 +37,8 @@ export const RadialBlobGeometryPreset = {
    * gradient washes through the centred title/subtitle.
    */
   bottomAnchoredCircle: { cxW: 0.5, cyH: 1, rxW: 1.5, ryW: 1.5 },
+  /** Figma home partner glow — wide radius reads as one soft halo (pairing screen). */
+  homePartnerGlow: { cxW: 0.5, cyH: 0.52, rxW: 0.88, ryW: 0.88 },
 } as const satisfies Record<string, RadialBlobGeometry>;
 
 export type RadialBlobGeometryName = keyof typeof RadialBlobGeometryPreset;
@@ -79,7 +84,37 @@ export const RadialBlobPalette = {
       positions: [0, 0.4, 0.75, 1],
     },
   },
+  /** Fallback when profile hex is missing; prefer `homePartnerGlowStopsFromHex`. */
+  homePartnerGlow: {
+    dark: {
+      colors: ['#7C3AED', 'rgba(124,58,237,0.4)', 'rgba(124,58,237,0)'],
+      positions: [0, 0.5, 1],
+    },
+    light: {
+      colors: ['#9333EA', 'rgba(147,51,234,0.25)', 'rgba(147,51,234,0)'],
+      positions: [0, 0.5, 1],
+    },
+  },
 } as const satisfies Record<string, RadialBlobPaletteEntry>;
+
+/**
+ * Single smooth radial for the home pairing glow, tinted by profile color.
+ */
+export function homePartnerGlowStopsFromHex(hex: string | null | undefined): RadialBlobStops {
+  const parsed = hex ? parseHexRgb(hex) : null;
+  const fallbackRgb = parseHexRgb(palette.profileAccentFallback) ?? { r: 139, g: 92, b: 246 };
+  const rgb = parsed ?? fallbackRgb;
+  return {
+    colors: [
+      rgba(rgb, 0.38),
+      rgba(rgb, 0.2),
+      rgba(rgb, 0.09),
+      rgba(rgb, 0.03),
+      rgba(rgb, 0),
+    ],
+    positions: [0, 0.22, 0.48, 0.72, 1],
+  };
+}
 
 export type RadialBlobPaletteName = keyof typeof RadialBlobPalette;
 

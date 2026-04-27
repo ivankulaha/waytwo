@@ -63,7 +63,7 @@ export const BorderRadius = {
 } as const;
 
 export const Size = {
-  /** Figma onboarding look avatar (node 124:6275). */
+  /** Figma onboarding / home avatar diameter (nodes 124:6275, 150:2964). Clip with `borderRadius: onboardingAvatar / 2`. */
   onboardingAvatar: 120,
   /** Stage for radial glow — diameter near screen edges (Figma look screen). */
   onboardingAvatarGlowStage: 364,
@@ -110,4 +110,17 @@ export const LayoutOffset = {
   exploreHeaderImageBottom: -90,
   exploreHeaderImageLeft: -35,
   helloWaveMarginTop: -6,
+} as const;
+
+/** Spring scale config for glass surface press interactions. Mirror of BackButton spring. */
+export const Animation = {
+  /** Scale applied to a glass surface on pressIn (both native-glass fallback and non-glass). */
+  glassPressScale: 0.88,
+  /** react-native-reanimated withSpring config for glass press. */
+  glassPressSpring: { damping: 12, stiffness: 300 },
+} as const;
+
+export const MainTabBarTokens = {
+  /** Add to `useSafeAreaInsets().bottom` for `paddingBottom` on tab screens. */
+  contentClearance: 88,
 } as const;
