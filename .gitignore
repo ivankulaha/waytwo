@@ -6,3 +6,24 @@
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Xcode / SwiftPM
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.xcscmblueprint
+.build/
+Packages/
+Package.resolved
+xcuserdata/
+
+# iOS artifacts
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# iOS local config
+mobile-ios/Config.local
+mobile-ios/Development.xcconfig
+mobile-ios/WayTwo/Config/Config.local.xcconfig
