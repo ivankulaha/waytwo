@@ -9,9 +9,9 @@ enum Config {
         URL(string: value(for: "SUPABASE_URL")) ?? URL(string: "https://supabase_url.notfound.com")!
     }
 
-    static var supabaseAnonKey: String {
-        let key = value(for: "SUPABASE_ANON_KEY")
-        return key.isEmpty ? "public-anon-key-placeholder" : key
+    static var supabasePublishableKey: String {
+        let key = value(for: "SUPABASE_PUBLISHABLE_KEY")
+        return key.isEmpty ? "public-publishable-key-placeholder" : key
     }
 
     static var apiURL: URL {

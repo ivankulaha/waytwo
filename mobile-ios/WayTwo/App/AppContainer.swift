@@ -15,7 +15,7 @@ struct AppContainer {
         let keychain = KeychainClient()
         let database = DatabaseClient(logger: logger)
         let api = APIClient(baseURL: Config.apiURL, logger: logger)
-        let supabase = SupabaseClient(baseURL: Config.supabaseURL, anonKey: Config.supabaseAnonKey, logger: logger)
+        let supabase = SupabaseClient(baseURL: Config.supabaseURL, publishableKey: Config.supabasePublishableKey, logger: logger)
         let networkMonitor = NetworkMonitor(logger: logger)
         let outbox = Outbox(database: database, apiClient: api, logger: logger)
         let profileSync = ProfileSync(database: database, apiClient: api, outbox: outbox, logger: logger)

@@ -136,10 +136,10 @@ AppContainer
 
 Two distinct clients handle different backends:
 
-- **`SupabaseClient`** — wraps the official `Supabase` Swift SDK. All auth operations are live: `signInWithPassword`, `signUp`, `signOut`, `resetPasswordForEmail`, `updatePassword`, `exchangeCodeForSession`, `signInWithIdToken` (Apple). Logs operation outcomes at `info` level with no token values.
+- **`SupabaseClient`** — wraps the official `Supabase` Swift SDK. All auth operations are live: `signInWithPassword`, `signUp`, `signOut`, `resetPasswordForEmail`, `updatePassword`, `exchangeCodeForSession`, `signInWithIdToken` (Apple). Logs auth failures at `warn` with structured `AuthError` metadata (no tokens or credentials).
 - **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates).
 
-Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiURL`, `Config.supabaseURL`, `Config.supabaseAnonKey`). Secrets are not embedded in source.
+Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiURL`, `Config.supabaseURL`, `Config.supabasePublishableKey`). Secrets are not embedded in source.
 
 ---
 
