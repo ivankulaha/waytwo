@@ -5,11 +5,6 @@ struct NewPasswordView: View {
     @Binding var state: AuthReducer.State
     let onSave: () -> Void
 
-    private enum Layout {
-        static let topHeaderOffset: CGFloat = Tokens.Size.authHeaderTopOffset
-        static let headerToActionsGap: CGFloat = Tokens.Spacing.x4l
-    }
-
     private var canSubmit: Bool {
         !state.newPassword.isEmpty
     }
@@ -23,22 +18,14 @@ struct NewPasswordView: View {
     }
 
     private var content: some View {
-        GeometryReader { proxy in
-            let availableWidth = max(0, proxy.size.width - (Tokens.Spacing.xl * 2))
-            let contentWidth = min(Tokens.Size.contentWidth, availableWidth)
-
+        FormScreenScrollContainer(topSpacing: Tokens.FormScreen.Spacing.beforeHeaderWithNavBar) {
+            VStack(spacing: Tokens.FormScreen.Spacing.headerToSubheader) {
+                FormScreenTitleText(titleKey: "auth.createNewPasswordTitle")
+                FormScreenSubheaderPlaceholder()
+            }
+        } formContent: {
             VStack(spacing: 0) {
-                Spacer().frame(height: Layout.topHeaderOffset)
-
-                Text("auth.createNewPasswordTitle")
-                    .font(.system(size: Tokens.FontSize.x2l, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .frame(width: contentWidth)
-
-                Spacer().frame(height: Layout.headerToActionsGap)
-
-                VStack(spacing: Tokens.Spacing.xl) {
+                VStack(spacing: Tokens.FormScreen.Spacing.formControls) {
                     SecureInputField(
                         placeholder: "auth.newPasswordPlaceholder",
                         text: $state.newPassword,
@@ -51,7 +38,6 @@ struct NewPasswordView: View {
                         action: onSave
                     )
                 }
-                .frame(width: contentWidth)
 
                 if let errorKey = state.errorKey {
                     Text(LocalizedStringKey(errorKey))
@@ -59,12 +45,8 @@ struct NewPasswordView: View {
                         .font(.system(size: Tokens.FontSize.sm, weight: .regular))
                         .multilineTextAlignment(.center)
                         .padding(.top, Tokens.Spacing.x2l)
-                        .frame(width: contentWidth)
                 }
-
-                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity)
         }
     }
 

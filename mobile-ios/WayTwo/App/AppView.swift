@@ -128,21 +128,25 @@ struct AppView: View {
     }
 
     private var emailSentView: some View {
-        VStack(spacing: Tokens.Spacing.xl) {
-            Text("auth.emailSentTitle")
-                .font(.title2.bold())
-                .foregroundStyle(AppColors.textPrimary)
-            Text("auth.emailSentBody")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(AppColors.textSecondary)
-            Button("auth.backToSignIn") {
-                state.auth.flow = .email
-                state.auth.password = ""
-                state.auth.newPassword = ""
+        ZStack {
+            AppColors.surface.ignoresSafeArea()
+            AuthGradient()
+            FormScreenScrollContainer {
+                VStack(spacing: Tokens.FormScreen.Spacing.headerToSubheader) {
+                    FormScreenTitleText(titleKey: "auth.emailSentTitle")
+                    FormScreenSubheaderText(textKey: "auth.emailSentBody", lineLimit: nil)
+                }
+            } formContent: {
+                PrimaryButton(
+                    titleKey: "auth.backToSignIn",
+                    action: {
+                        state.auth.flow = .email
+                        state.auth.password = ""
+                        state.auth.newPassword = ""
+                    }
+                )
             }
         }
-        .padding(Tokens.Spacing.x3l)
-        .background(AppColors.surface.ignoresSafeArea())
     }
 
     private var onboardingFlow: some View {

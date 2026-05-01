@@ -5,11 +5,6 @@ struct SignUpView: View {
     @Binding var state: AuthReducer.State
     let onSignUp: () -> Void
 
-    private enum Layout {
-        static let topHeaderOffset: CGFloat = Tokens.Size.authHeaderTopOffset
-        static let headerToActionsGap: CGFloat = Tokens.Spacing.x4l
-    }
-
     private var canSubmit: Bool {
         !state.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !state.password.isEmpty
@@ -24,22 +19,14 @@ struct SignUpView: View {
     }
 
     private var content: some View {
-        GeometryReader { proxy in
-            let availableWidth = max(0, proxy.size.width - (Tokens.Spacing.xl * 2))
-            let contentWidth = min(Tokens.Size.contentWidth, availableWidth)
-
+        FormScreenScrollContainer(topSpacing: Tokens.FormScreen.Spacing.beforeHeaderWithNavBar) {
+            VStack(spacing: Tokens.FormScreen.Spacing.headerToSubheader) {
+                FormScreenTitleText(titleKey: "auth.createAccountTitle")
+                FormScreenSubheaderPlaceholder()
+            }
+        } formContent: {
             VStack(spacing: 0) {
-                Spacer().frame(height: Layout.topHeaderOffset)
-
-                Text("auth.createAccountTitle")
-                    .font(.system(size: Tokens.FontSize.x2l, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .frame(width: contentWidth)
-
-                Spacer().frame(height: Layout.headerToActionsGap)
-
-                VStack(spacing: Tokens.Spacing.xl) {
+                VStack(spacing: Tokens.FormScreen.Spacing.formControls) {
                     AppTextField(
                         placeholder: "auth.emailPlaceholder",
                         text: $state.email,
@@ -60,7 +47,6 @@ struct SignUpView: View {
                         action: onSignUp
                     )
                 }
-                .frame(width: contentWidth)
 
                 if let errorKey = state.errorKey {
                     Text(LocalizedStringKey(errorKey))
@@ -68,12 +54,8 @@ struct SignUpView: View {
                         .font(.system(size: Tokens.FontSize.sm, weight: .regular))
                         .multilineTextAlignment(.center)
                         .padding(.top, Tokens.Spacing.x2l)
-                        .frame(width: contentWidth)
                 }
-
-                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity)
         }
     }
 

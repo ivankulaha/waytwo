@@ -33,9 +33,10 @@ enum Tokens {
         static let contentWidth: CGFloat = 370
         static let compactCtaWidth: CGFloat = 149
         static let compactCtaHeight: CGFloat = 48
-        static let inputHeight: CGFloat = 56
-        static let buttonHeight: CGFloat = 56
-        static let authHeaderTopOffset: CGFloat = 120
+        static let inputHeight: CGFloat = 52
+        static let buttonHeight: CGFloat = 52
+        /// Label typography on `PrimaryButton` (Figma: 24 line height).
+        static let primaryButtonLabelLineHeight: CGFloat = 24
         static let avatar: CGFloat = 120
         static let swatchTap: CGFloat = 48
         static let swatchInner: CGFloat = 36
@@ -47,5 +48,37 @@ enum Tokens {
         static let disabled: CGFloat = 0.45
         static let pressed: CGFloat = 0.85
         static let appleDisabled: CGFloat = 0.5
+    }
+
+    /// Vertical rhythm for scrollable form-style screens (auth, email sent, etc.).
+    enum FormScreen {
+        enum Spacing {
+            /// Standard iOS inline navigation bar height.
+            static let navBarHeight: CGFloat = 44
+            /// Space before the screen header when the nav bar is hidden (no back button).
+            static let beforeHeader: CGFloat = 48
+            /// Space before the screen header when the nav bar is visible (back button present).
+            /// Subtracts the nav bar height so the title lands at the same visual position.
+            static let beforeHeaderWithNavBar: CGFloat = max(0, beforeHeader - navBarHeight)
+            /// Space between primary title (header L) and subheader.
+            static let headerToSubheader: CGFloat = Tokens.Spacing.md
+            /// Space between the full header block and the first field or action stack.
+            static let headerBlockToForm: CGFloat = Tokens.Spacing.x4l
+            /// Space between stacked inputs and primary actions inside the form.
+            static let formControls: CGFloat = Tokens.Spacing.xl
+        }
+
+        enum Typography {
+            /// Primary screen title (design “header L”).
+            static let headerLine: CGFloat = Tokens.FontSize.x2l
+            static let subheaderLine: CGFloat = Tokens.FontSize.md
+        }
+
+        enum Layout {
+            /// Invisible subheader row on title-only screens (aligns with two-line subheader).
+            static let subheaderPlaceholderHeight: CGFloat = Tokens.FontSize.md * 2.5
+            /// Min height for a subheader caption (e.g. email) to match that block.
+            static let subheaderBlockMinHeight: CGFloat = Tokens.FontSize.md * 2.5
+        }
     }
 }

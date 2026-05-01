@@ -10,9 +10,8 @@ import SwiftUI
 /// taps from form controls layered on top.
 struct AuthGradient: View {
     /// Center Y measured from the top of the screen. Negative places the
-    /// center above the visible viewport. Default `-50` matches WayTwo
-    /// auth screens.
-    var verticalCenterFromTop: CGFloat = -50
+    /// center above the visible viewport.
+    var verticalCenterFromTop: CGFloat = -135
 
     /// Horizontal radius as a fraction of screen width. RN preset uses
     /// `1.6` so the side caps fade off-screen.

@@ -29,7 +29,7 @@ struct SecureInputField: View {
             field
         }
         .animation(.easeInOut(duration: 0.2), value: text.isEmpty)
-        .padding(.horizontal, Tokens.Spacing.xl)
+        .padding(.horizontal, Tokens.Spacing.lg)
         .frame(height: Tokens.Size.inputHeight, alignment: .center)
         .background(AppColors.inputBackground)
         .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.md))
@@ -41,7 +41,13 @@ struct SecureInputField: View {
 
     @ViewBuilder
     private var field: some View {
-        let base = SecureField("", text: $text, prompt: text.isEmpty ? Text(placeholder) : nil)
+        let base = SecureField(
+            "",
+            text: $text,
+            prompt: text.isEmpty
+                ? Text(placeholder).foregroundStyle(AppColors.textPlaceholder)
+                : nil
+        )
             .focused($isFocused)
             .font(.system(size: Tokens.FontSize.lg, weight: .medium))
             .foregroundStyle(AppColors.textPrimary)

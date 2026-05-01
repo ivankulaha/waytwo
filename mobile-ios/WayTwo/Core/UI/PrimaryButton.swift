@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Full-width pill CTA used across auth and onboarding flows. Mirrors the
 /// React Native `<PrimaryButton>` component: capsule shape, height
@@ -12,6 +13,11 @@ struct PrimaryButton: View {
 
     private var inactive: Bool { isLoading || isDisabled }
 
+    private static var titleLineSpacing: CGFloat {
+        let uiFont = UIFont.systemFont(ofSize: Tokens.FontSize.lg, weight: .semibold)
+        return max(0, Tokens.Size.primaryButtonLabelLineHeight - uiFont.lineHeight)
+    }
+
     var body: some View {
         Button(action: action) {
             ZStack {
@@ -20,7 +26,8 @@ struct PrimaryButton: View {
                         .tint(inactive ? AppColors.buttonDisabledText : AppColors.buttonText)
                 } else {
                     Text(titleKey)
-                        .font(.system(size: Tokens.FontSize.xl, weight: .semibold))
+                        .font(.system(size: Tokens.FontSize.lg, weight: .semibold))
+                        .lineSpacing(Self.titleLineSpacing)
                         .foregroundStyle(inactive ? AppColors.buttonDisabledText : AppColors.buttonText)
                 }
             }

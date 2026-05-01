@@ -38,7 +38,7 @@ struct AppTextField: View {
             field
         }
         .animation(.easeInOut(duration: 0.2), value: text.isEmpty)
-        .padding(.horizontal, Tokens.Spacing.xl)
+        .padding(.horizontal, Tokens.Spacing.lg)
         .frame(height: Tokens.Size.inputHeight, alignment: .center)
         .background(AppColors.inputBackground)
         .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.md))
@@ -50,7 +50,13 @@ struct AppTextField: View {
 
     @ViewBuilder
     private var field: some View {
-        let base = TextField("", text: $text, prompt: text.isEmpty ? Text(placeholder) : nil)
+        let base = TextField(
+            "",
+            text: $text,
+            prompt: text.isEmpty
+                ? Text(placeholder).foregroundStyle(AppColors.textPlaceholder)
+                : nil
+        )
             .focused($isFocused)
             .textInputAutocapitalization(autocapitalization)
             .autocorrectionDisabled(autocorrectionDisabled)
