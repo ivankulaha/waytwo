@@ -164,6 +164,8 @@ struct AppView: View {
                 OnboardingYouView(state: $state.onboarding) {
                     state.onboarding.step = .look
                 }
+                .navigationTitle("onboarding.you.title")
+                .authScreenWithoutVisibleNavigationTitle()
             }
             .navigationDestination(isPresented: Binding(
                 get: { state.onboarding.step == .look },

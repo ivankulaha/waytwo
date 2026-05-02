@@ -10,7 +10,7 @@ struct OnboardingReducer {
 
         var step: Step = .intro
         var name = ""
-        var gender = ""
+        var gender = "male"
         var dateOfBirth = ""
         var colorId = "purple"
         var photoLocalPath: String?

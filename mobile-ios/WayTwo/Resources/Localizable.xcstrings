@@ -431,7 +431,6 @@
       }
     },
     "common.cancel" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -443,6 +442,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Скасувати"
+          }
+        }
+      }
+    },
+    "common.done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
           }
         }
       }
@@ -639,6 +654,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ваш вигляд"
+          }
+        }
+      }
+    },
+    "onboarding.you.dobLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date of birth"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата народження"
           }
         }
       }

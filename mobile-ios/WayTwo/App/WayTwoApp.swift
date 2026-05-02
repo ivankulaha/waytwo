@@ -1,10 +1,15 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 @main
 struct WayTwoApp: App {
     private let appContainer = AppContainer.live
     @State private var appState = AppReducer.State()
+
+    init() {
+        Self.configureSegmentedControlAppearanceForDarkForms()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +28,20 @@ struct WayTwoApp: App {
                 }
         }
         .modelContainer(appContainer.database.modelContainer)
+    }
+
+    /// `UISegmentedControl` defaults are unreadable on black; use explicit UIColors (avoid `UIColor(Color)`).
+    private static func configureSegmentedControlAppearanceForDarkForms() {
+        let seg = UISegmentedControl.appearance()
+        seg.selectedSegmentTintColor = UIColor.white
+        seg.setTitleTextAttributes(
+            [.foregroundColor: UIColor(white: 1, alpha: 0.75)],
+            for: .normal
+        )
+        seg.setTitleTextAttributes(
+            [.foregroundColor: UIColor.black],
+            for: .selected
+        )
     }
 
     private func handleIncomingURL(_ url: URL) async {

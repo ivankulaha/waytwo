@@ -5,32 +5,235 @@ struct OnboardingYouView: View {
     let onNext: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Tokens.Spacing.xl) {
-                AppTextField(
-                    placeholder: "onboarding.you.namePlaceholder",
-                    text: $state.name
-                )
-                Picker("onboarding.you.genderLabel", selection: $state.gender) {
-                    Text("onboarding.you.genderMale").tag("male")
-                    Text("onboarding.you.genderFemale").tag("female")
-                    Text("onboarding.you.genderOther").tag("other")
+        ZStack {
+            AppColors.surface.ignoresSafeArea()
+            FormScreenScrollContainer(topSpacing: Tokens.FormScreen.Spacing.beforeHeaderWithNavBar) {
+                VStack(spacing: Tokens.FormScreen.Spacing.headerToSubheader) {
+                    FormScreenTitleText(titleKey: "onboarding.you.title")
+                    FormScreenSubheaderPlaceholder()
                 }
-                .pickerStyle(.segmented)
-                AppTextField(
-                    placeholder: "onboarding.you.dobPlaceholder",
-                    text: $state.dateOfBirth
-                )
-                PrimaryButton(titleKey: "onboarding.you.next", action: onNext)
-                if let errorKey = state.errorKey {
-                    Text(LocalizedStringKey(errorKey))
-                        .foregroundStyle(AppColors.error)
+            } formContent: {
+                VStack(spacing: 0) {
+                    VStack(spacing: Tokens.FormScreen.Spacing.formControls) {
+                        AppTextField(
+                            placeholder: "onboarding.you.namePlaceholder",
+                            text: $state.name
+                        )
+                        OnboardingGenderPickerField(selection: $state.gender)
+                        OnboardingDateOfBirthField(dateString: $state.dateOfBirth)
+                        PrimaryButton(titleKey: "onboarding.you.next", action: onNext)
+                        if let errorKey = state.errorKey {
+                            Text(LocalizedStringKey(errorKey))
+                                .foregroundStyle(AppColors.error)
+                        }
+                    }
                 }
             }
-            .padding(Tokens.Spacing.x3l)
         }
-        .background(AppColors.surface.ignoresSafeArea())
-        .navigationTitle("onboarding.you.title")
+    }
+}
+
+private enum OnboardingGender: String, CaseIterable, Identifiable {
+    case male = "male"
+    case female = "female"
+    case other = "other"
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .male: "onboarding.you.genderMale"
+        case .female: "onboarding.you.genderFemale"
+        case .other: "onboarding.you.genderOther"
+        }
+    }
+
+    static func stored(_ raw: String) -> Self {
+        Self(rawValue: raw) ?? .male
+    }
+}
+
+private struct OnboardingGenderPickerField: View {
+    @Binding var selection: String
+
+    private var gender: OnboardingGender {
+        OnboardingGender.stored(selection)
+    }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            HStack(alignment: .center, spacing: Tokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: Tokens.Spacing.xxs) {
+                    Text("onboarding.you.genderLabel")
+                        .font(.system(size: Tokens.FontSize.sm, weight: .regular))
+                        .foregroundStyle(AppColors.textSecondary)
+                    Text(LocalizedStringKey(gender.titleKey))
+                        .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                    .foregroundStyle(AppColors.textSecondary)
+                    .imageScale(.small)
+            }
+            .padding(.horizontal, Tokens.Spacing.lg)
+            .frame(maxWidth: .infinity)
+            .frame(height: Tokens.Size.inputHeight, alignment: .center)
+            .allowsHitTesting(false)
+
+            Menu {
+                ForEach(OnboardingGender.allCases) { option in
+                    Button {
+                        selection = option.rawValue
+                    } label: {
+                        HStack {
+                            Text(LocalizedStringKey(option.titleKey))
+                            Spacer(minLength: Tokens.Spacing.xl)
+                            if selection == option.rawValue {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .tint(AppColors.textPrimary)
+        }
+        .frame(height: Tokens.Size.inputHeight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.inputBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tokens.Radius.md)
+                .stroke(AppColors.inputBorder, lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct OnboardingDateOfBirthField: View {
+    @Binding var dateString: String
+    @State private var showPicker = false
+    @State private var draftDate = OnboardingDateOfBirthField.defaultDraftDate
+
+    private static var defaultDraftDate: Date {
+        Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
+    }
+
+    private static var displayFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        f.locale = .autoupdatingCurrent
+        return f
+    }
+
+    private var parsedDate: Date? {
+        Self.date(fromYMD: dateString)
+    }
+
+    private var displayLine: String? {
+        guard let date = parsedDate else { return nil }
+        return Self.displayFormatter.string(from: date)
+    }
+
+    private var dobRange: ClosedRange<Date> {
+        let cal = Calendar.current
+        let end = cal.startOfDay(for: Date())
+        let start = cal.date(byAdding: .year, value: -120, to: end) ?? end
+        return start...end
+    }
+
+    var body: some View {
+        Button {
+            draftDate = parsedDate ?? Self.defaultDraftDate
+            showPicker = true
+        } label: {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.xxs) {
+                if let line = displayLine {
+                    Text("onboarding.you.dobLabel")
+                        .font(.system(size: Tokens.FontSize.sm, weight: .regular))
+                        .foregroundStyle(AppColors.textSecondary)
+                    Text(line)
+                        .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("onboarding.you.dobPlaceholder")
+                        .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                        .foregroundStyle(AppColors.textPlaceholder)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.horizontal, Tokens.Spacing.lg)
+            .frame(height: Tokens.Size.inputHeight, alignment: .center)
+            .background(AppColors.inputBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: Tokens.Radius.md)
+                    .stroke(AppColors.inputBorder, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
+        .sheet(isPresented: $showPicker) {
+            NavigationStack {
+                DatePicker(
+                    "",
+                    selection: $draftDate,
+                    in: dobRange,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .navigationTitle("onboarding.you.dobLabel")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("common.cancel") { showPicker = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("common.done") {
+                            dateString = Self.ymdString(from: draftDate)
+                            showPicker = false
+                        }
+                    }
+                }
+                .toolbarBackground(AppColors.surface, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+            }
+            .background(AppColors.surface)
+            .preferredColorScheme(.dark)
+            .tint(AppColors.textPrimary)
+            .presentationBackground(AppColors.surface)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private static func ymdString(from date: Date) -> String {
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        let y = c.year ?? 0
+        let m = c.month ?? 0
+        let d = c.day ?? 0
+        return String(format: "%04d-%02d-%02d", y, m, d)
+    }
+
+    private static func date(fromYMD string: String) -> Date? {
+        let parts = string.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        var dc = DateComponents()
+        dc.year = parts[0]
+        dc.month = parts[1]
+        dc.day = parts[2]
+        return Calendar.current.date(from: dc)
     }
 }
 
