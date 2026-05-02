@@ -70,8 +70,6 @@ struct OnboardingLookView: View {
         }
     }
 
-    // MARK: - Glow
-
     private static let glowRadius: CGFloat = 240
 
     private var glowLayer: some View {
@@ -141,8 +139,6 @@ struct OnboardingLookView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Color panel
-
     private var profileColorGlassPanel: some View {
         let row1 = Array(AppColors.profileColorsOrdered.prefix(6))
         let row2 = Array(AppColors.profileColorsOrdered.suffix(6))
@@ -161,7 +157,7 @@ struct OnboardingLookView: View {
         .padding(Tokens.Spacing.xl)
         .background {
             RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
-                .fill(Color.white.opacity(0.08))
+                .fill(AppColors.glassBg)
         }
         .overlay {
             RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
@@ -179,7 +175,7 @@ struct OnboardingLookView: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
-                .strokeBorder(AppColors.onboardingGlassStroke, lineWidth: 1)
+                .strokeBorder(AppColors.glassBorder, lineWidth: 1)
                 .allowsHitTesting(false)
         }
         .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous))

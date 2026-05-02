@@ -8,7 +8,7 @@ struct WayTwoApp: App {
     @State private var appState = AppReducer.State()
 
     init() {
-        Self.configureSegmentedControlAppearanceForDarkForms()
+        Self.configureSegmentedControlAppearance()
     }
 
     var body: some Scene {
@@ -30,16 +30,25 @@ struct WayTwoApp: App {
         .modelContainer(appContainer.database.modelContainer)
     }
 
-    /// `UISegmentedControl` defaults are unreadable on black; use explicit UIColors (avoid `UIColor(Color)`).
-    private static func configureSegmentedControlAppearanceForDarkForms() {
+    private static func uiRGB(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, alpha: CGFloat = 1) -> UIColor {
+        UIColor(red: r / 255, green: g / 255, blue: b / 255, alpha: alpha)
+    }
+
+    private static func configureSegmentedControlAppearance() {
         let seg = UISegmentedControl.appearance()
-        seg.selectedSegmentTintColor = UIColor.white
+        seg.selectedSegmentTintColor = UIColor { t in
+            t.userInterfaceStyle == .dark ? .white : .black
+        }
         seg.setTitleTextAttributes(
-            [.foregroundColor: UIColor(white: 1, alpha: 0.75)],
+            [.foregroundColor: UIColor { t in
+                t.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.75) : uiRGB(82, 82, 91)
+            }],
             for: .normal
         )
         seg.setTitleTextAttributes(
-            [.foregroundColor: UIColor.black],
+            [.foregroundColor: UIColor { t in
+                t.userInterfaceStyle == .dark ? .black : .white
+            }],
             for: .selected
         )
     }

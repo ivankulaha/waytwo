@@ -8,6 +8,8 @@ struct SignInView: View {
     let onContinueEmail: () -> Void
     let onAppleSignIn: (_ idToken: String, _ nonce: String) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var canSubmit: Bool {
         !state.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -75,7 +77,8 @@ struct SignInView: View {
             }
             onAppleSignIn(token, state.appleNonce)
         }
-        .signInWithAppleButtonStyle(.white)
+        .signInWithAppleButtonStyle(colorScheme == .light ? .black : .white)
+        .id(colorScheme)
         .frame(height: Tokens.Size.buttonHeight)
         .clipShape(Capsule())
         .contentShape(Capsule())
