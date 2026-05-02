@@ -415,6 +415,7 @@
       }
     },
     "common.back" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -663,13 +664,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Date of birth (optional)"
+            "value" : "Date of birth"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Дата народження (необов’язково)"
+            "value" : "Дата народження"
           }
         }
       }
@@ -691,6 +692,7 @@
       }
     },
     "onboarding.you.genderFemale" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -723,6 +725,7 @@
       }
     },
     "onboarding.you.genderMale" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -739,6 +742,7 @@
       }
     },
     "onboarding.you.genderOther" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

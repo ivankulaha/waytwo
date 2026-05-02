@@ -26,17 +26,12 @@ struct OnboardingYouView: View {
                         OnboardingGenderPickerField(selection: $state.gender)
                         OnboardingDateOfBirthField(dateString: $state.dateOfBirth)
                     }
-                    Spacer().frame(height: Tokens.Spacing.x4l)
-                    HStack {
-                        Spacer(minLength: 0)
-                        PrimaryButton(
-                            titleKey: "onboarding.you.next",
-                            isDisabled: !canProceedYouStep,
-                            maxContentWidth: Tokens.Size.onboardingFormPrimaryCtaWidth,
-                            action: onNext
-                        )
-                        Spacer(minLength: 0)
-                    }
+                    Spacer().frame(height: Tokens.Spacing.x3l)
+                    PrimaryButton(
+                        titleKey: "onboarding.you.next",
+                        isDisabled: !canProceedYouStep,
+                        action: onNext
+                    )
                     if let errorKey = state.errorKey {
                         Text(LocalizedStringKey(errorKey))
                             .foregroundStyle(AppColors.error)
@@ -260,9 +255,14 @@ private struct OnboardingDateOfBirthField: View {
 
 #Preview {
     NavigationStack {
-        OnboardingYouView(
-            state: .constant(OnboardingReducer.State()),
-            onNext: {}
-        )
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                OnboardingYouView(
+                    state: .constant(OnboardingReducer.State()),
+                    onNext: {}
+                )
+                .navigationTitle("onboarding.you.title")
+                .hidesNavigationBarTitle()
+            }
     }
 }

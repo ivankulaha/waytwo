@@ -53,8 +53,15 @@ struct NewPasswordView: View {
 }
 
 #Preview {
-    NewPasswordView(
-        state: .constant(AuthReducer.State()),
-        onSave: {}
-    )
+    NavigationStack {
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                NewPasswordView(
+                    state: .constant(AuthReducer.State()),
+                    onSave: {}
+                )
+                .navigationTitle("auth.createNewPasswordTitle")
+                .hidesNavigationBarTitle()
+            }
+    }
 }

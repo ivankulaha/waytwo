@@ -19,16 +19,19 @@ Phase 2 completed the following areas beyond the initial POC: full design token 
 ```
 mobile-ios/WayTwo/
 ├── App/
-│   ├── WayTwoApp.swift       – SwiftUI entry point; session restore + deep-link handler
+│   ├── WayTwoApp.swift       – SwiftUI entry point; session restore + SwiftData profile restore + deep-link handler
 │   ├── AppContainer.swift    – dependency graph (single struct, live singleton)
 │   ├── AppReducer.swift      – root State, Action, reduce
-│   ├── AppView.swift         – root view; derives active screen from state
+│   ├── AppView.swift         – root view; derives active screen from state; navigation + binding helpers
+│   ├── AppView+Auth.swift    – auth async side effects (email check, sign-in, sign-up, reset, Apple)
+│   ├── AppView+Onboarding.swift – onboarding persistence + complete onboarding
+│   ├── AppView+Session.swift – logout
 │   └── Config.swift          – typed config values read from .xcconfig
 ├── Core/                     – shared infrastructure (no feature logic)
 └── Features/                 – domain modules
 ```
 
-`WayTwoApp` creates `AppContainer.live` and passes it down. On launch, a `.task` modifier checks `KeychainClient.loadSession()` and sets `isAuthenticated` without requiring a network round-trip. An `.onOpenURL` handler intercepts Supabase password-reset deep links and routes to the `newPassword` auth flow state.
+`WayTwoApp` creates `AppContainer.live` and passes it down. On launch, a `.task` modifier checks `KeychainClient.loadSession()` and sets `isAuthenticated` without requiring a network round-trip. When a session exists, it calls `DatabaseClient.ensureProfileRow` then restores `hasCompletedOnboarding` and onboarding draft fields (`name`, `gender`, `dateOfBirth`) from `ProfileRecord` so in-memory state matches SwiftData after process death. An `.onOpenURL` handler intercepts Supabase password-reset deep links and routes to the `newPassword` auth flow state.
 
 `AppView` reads `AppReducer.State` and renders one of three exclusive branches:
 
@@ -76,7 +79,7 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 | `.emailSent` | Inline confirmation screen | Manual navigation back to `.email` |
 | `.newPassword` | `NewPasswordView` | Deep-link restore → Supabase `updatePassword` → `.email` |
 
-`AppView.authFlow` owns all async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages.
+`AppView` and `AppView+Auth` own async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages. After password or Apple sign-in succeeds, `ensureProfileRow` runs so subsequent `upsertProfileFields` writes are not no-ops.
 
 ### Apple Sign-In
 
@@ -88,7 +91,7 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 
 | Event | Behavior |
 |-------|----------|
-| App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true` without a network call |
+| App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true`, ensures profile row, restores onboarding completion and draft profile fields from SwiftData |
 | Successful sign-in (password or Apple) | `KeychainClient.saveSession(accessToken:refreshToken:)` persists both tokens |
 | Logout | `SupabaseClient.signOut()` → `KeychainClient.deleteSession()` → `AppReducer.State` reset to default |
 | Deep-link password reset | `WayTwoApp.onOpenURL` extracts `code` query param → `SupabaseClient.exchangeCodeForSession(url:)` → `auth.flow = .newPassword` |
@@ -128,7 +131,7 @@ AppContainer
 | Keychain (`auth.token`) | `Security.framework` | Legacy single-token slot (backward compatibility) |
 | Keychain (`auth.session`) | `Security.framework` | JSON-encoded `Session` struct with `accessToken` + `refreshToken` |
 
-`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`upsertProfile`, `fetchProfile`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`). Callers never access the model context directly.
+`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`ensureProfileRow`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`). Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly.
 
 ---
 
@@ -164,7 +167,7 @@ Supported outbox operations:
 | Method | Direction | When called |
 |--------|-----------|-------------|
 | `pullProfile(accessToken:)` | Remote → local | After onboarding completion; on reconnect |
-| `pushProfile(partial:accessToken:)` | Local → remote | Profile edit saved |
+| `pushProfile(patch:accessToken:)` | Local → remote | Profile edit saved |
 | `pushAvatar(localURI:accessToken:)` | Local → remote | Avatar selected |
 | `pushCompleteOnboarding(accessToken:)` | Local → remote, then pull | Onboarding step 3 complete |
 
@@ -214,7 +217,7 @@ Dark-first color system. All values are static `Color` properties:
 
 `SettingsView` is the second main tab (`AppReducer.Tab.settings`). It currently exposes:
 
-- **Logout** — calls `AppView.logout()`, which signs out via Supabase, deletes the Keychain session, and resets root state to `AppReducer.State()`.
+- **Logout** — calls `logout()` on `AppView` (see `AppView+Session.swift`), which signs out via Supabase, deletes the Keychain session, and resets root state to `AppReducer.State()`.
 - **Error display** — shows a localized error message if `SettingsReducer.State.errorKey` is set (e.g. if sign-out fails).
 
 ---

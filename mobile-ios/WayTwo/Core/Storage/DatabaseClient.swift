@@ -61,6 +61,24 @@ final class OutboxRecord {
     }
 }
 
+struct ProfilePatch: Sendable {
+    var displayName: String?
+    var gender: String?
+    var dateOfBirth: String?
+    var colorId: String?
+    var photoPath: String?
+
+    func asDictionary() -> [String: String] {
+        var d: [String: String] = [:]
+        if let v = displayName { d["display_name"] = v }
+        if let v = gender { d["gender"] = v }
+        if let v = dateOfBirth { d["date_of_birth"] = v }
+        if let v = colorId { d["color_id"] = v }
+        if let v = photoPath { d["photo_path"] = v }
+        return d
+    }
+}
+
 final class DatabaseClient {
     let modelContainer: ModelContainer
     private let logger: AppLogger
@@ -115,15 +133,15 @@ final class DatabaseClient {
         try? context.save()
     }
 
-    func upsertProfileFields(_ fields: [String: String]) {
+    func upsertProfileFields(_ patch: ProfilePatch) {
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
         guard let record = try? context.fetch(descriptor).first else { return }
-        if let displayName = fields["display_name"] { record.displayName = displayName }
-        if let gender = fields["gender"] { record.gender = gender }
-        if let dateOfBirth = fields["date_of_birth"] { record.dateOfBirth = dateOfBirth }
-        if let colorId = fields["color_id"] { record.colorId = colorId }
-        if let photoPath = fields["photo_path"] { record.photoPath = photoPath }
+        if let v = patch.displayName { record.displayName = v }
+        if let v = patch.gender { record.gender = v }
+        if let v = patch.dateOfBirth { record.dateOfBirth = v }
+        if let v = patch.colorId { record.colorId = v }
+        if let v = patch.photoPath { record.photoPath = v }
         record.dirty = true
         record.updatedAt = Date()
         try? context.save()

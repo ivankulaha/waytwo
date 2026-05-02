@@ -62,8 +62,15 @@ struct SignUpView: View {
 }
 
 #Preview {
-    SignUpView(
-        state: .constant(AuthReducer.State()),
-        onSignUp: {}
-    )
+    NavigationStack {
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                SignUpView(
+                    state: .constant(AuthReducer.State()),
+                    onSignUp: {}
+                )
+                .navigationTitle("auth.createAccountTitle")
+                .hidesNavigationBarTitle()
+            }
+    }
 }

@@ -8,3 +8,6 @@ alwaysApply: true
 4. Async operations must return typed results and map failures into domain errors before UI handling.
 5. Keep files focused: one feature reducer + one main view per file when practical; split large features into child reducers/views.
 6. Never couple view rendering logic with persistence/networking internals. Views dispatch actions; dependencies perform side effects.
+7. Never use string-keyed dictionaries (`[String: String]`, `[String: Any]`) to represent structured model data crossing architectural boundaries. Define a typed struct with explicit optional properties; serialise to a dictionary only at the single point where an external contract (network payload, storage format) requires it.
+8. User state that must survive app termination must be written to the local persistence layer at the action that produces it and restored from it on every cold launch. Never rely on `@State` or in-memory reducer state alone for data that must outlive the process.
+9. Any local database record that must exist before dependent writes can succeed must be initialized eagerly at the authentication boundary, not lazily by the first writer. If a write silently no-ops when its required row is absent, the row creation belongs at the point where the session is established, not scattered at each write site.

@@ -16,8 +16,11 @@ struct ProfileEditView: View {
 
 #Preview {
     NavigationStack {
-        ProfileEditView(
-            state: .constant({ var s = ProfileReducer.State(); s.name = "Alex"; s.email = "alex@example.com"; return s }())
-        )
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                ProfileEditView(
+                    state: .constant({ var s = ProfileReducer.State(); s.name = "Alex"; s.email = "alex@example.com"; return s }())
+                )
+            }
     }
 }

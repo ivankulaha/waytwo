@@ -62,6 +62,7 @@ struct OnboardingLookView: View {
                 .padding(.horizontal, Tokens.Spacing.xl)
             }
         }
+        .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.4), value: state.colorId)
         .photosPicker(isPresented: $showPhotoPicker, selection: $pickerItem, matching: .images)
         .onChange(of: pickerItem) { _, newItem in
@@ -90,8 +91,6 @@ struct OnboardingLookView: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
-
-    // MARK: - Avatar
 
     private var avatarButton: some View {
         Button {
@@ -155,30 +154,7 @@ struct OnboardingLookView: View {
             }
         }
         .padding(Tokens.Spacing.xl)
-        .background {
-            RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
-                .fill(AppColors.glassBg)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(0.12), location: 0),
-                            .init(color: Color.clear, location: 0.5),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .allowsHitTesting(false)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous)
-                .strokeBorder(AppColors.glassBorder, lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.glassPanel, style: .continuous))
+        .modifier(GlassPanelBackground(cornerRadius: Tokens.Radius.glassPanel))
     }
 
     private func profileColorRow(items: [(id: String, color: Color)]) -> some View {
@@ -242,11 +218,57 @@ private struct ProfileColorSwatchView: View {
     }
 }
 
+private struct GlassPanelBackground: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(
+                    .regular.interactive(),
+                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                )
+        } else {
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: Color.white.opacity(0.12), location: 0),
+                                    .init(color: Color.clear, location: 0.5),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .allowsHitTesting(false)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(AppColors.glassBorder, lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+}
+
 #Preview {
     NavigationStack {
-        OnboardingLookView(
-            state: .constant(OnboardingReducer.State()),
-            onFinish: {}
-        )
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                OnboardingLookView(
+                    state: .constant(OnboardingReducer.State()),
+                    onFinish: {}
+                )
+                .navigationTitle("onboarding.look.title")
+                .hidesNavigationBarTitle()
+            }
     }
 }

@@ -9,6 +9,7 @@ struct WayTwoApp: App {
 
     init() {
         Self.configureSegmentedControlAppearance()
+        Self.configureNavigationBarAppearance()
     }
 
     var body: some Scene {
@@ -17,6 +18,16 @@ struct WayTwoApp: App {
                 .task {
                     if appContainer.keychain.loadSession() != nil {
                         appState.isAuthenticated = true
+                        appContainer.database.ensureProfileRow(userId: "local")
+                        if let profile = appContainer.database.getProfile() {
+                            if profile.onboardingCompletedAt != nil {
+                                appState.hasCompletedOnboarding = true
+                            } else {
+                                appState.onboarding.name = profile.displayName ?? ""
+                                appState.onboarding.gender = profile.gender ?? ""
+                                appState.onboarding.dateOfBirth = profile.dateOfBirth ?? ""
+                            }
+                        }
                     } else {
                         appState.isAuthenticated = false
                     }
@@ -51,6 +62,21 @@ struct WayTwoApp: App {
             }],
             for: .selected
         )
+    }
+
+    /// Replace the system back chevron with `arrow.backward` while keeping
+    /// iOS 26 glass styling, swipe-back gesture, and back-history menu.
+    private static func configureNavigationBarAppearance() {
+        let arrow = UIImage(systemName: "arrow.backward")?
+            .withRenderingMode(.alwaysTemplate)
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        appearance.setBackIndicatorImage(arrow, transitionMaskImage: arrow)
+
+        let bar = UINavigationBar.appearance()
+        bar.standardAppearance = appearance
+        bar.scrollEdgeAppearance = appearance
+        bar.compactAppearance = appearance
     }
 
     private func handleIncomingURL(_ url: URL) async {

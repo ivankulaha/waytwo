@@ -56,8 +56,15 @@ struct ForgotPasswordView: View {
 }
 
 #Preview {
-    ForgotPasswordView(
-        state: .constant(AuthReducer.State()),
-        onSubmit: {}
-    )
+    NavigationStack {
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                ForgotPasswordView(
+                    state: .constant(AuthReducer.State()),
+                    onSubmit: {}
+                )
+                .navigationTitle("auth.resetPasswordTitle")
+                .hidesNavigationBarTitle()
+            }
+    }
 }

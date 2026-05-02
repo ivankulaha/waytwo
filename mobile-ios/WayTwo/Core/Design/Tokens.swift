@@ -40,15 +40,12 @@ enum Tokens {
         static let inputHeight: CGFloat = 56
         /// Matches RN primary CTA height on dark forms.
         static let buttonHeight: CGFloat = 56
-        /// Figma v2 onboarding form: centered primary CTA width (frames 8–10).
-        static let onboardingFormPrimaryCtaWidth: CGFloat = 200
         /// Label typography on `PrimaryButton` (Figma: 24 line height).
         static let primaryButtonLabelLineHeight: CGFloat = 24
         static let avatar: CGFloat = 120
         static let swatchTap: CGFloat = 48
         static let swatchInner: CGFloat = 36
         static let dividerThickness: CGFloat = 1
-        static let iconButtonSize: CGFloat = 44
     }
 
     enum Opacity {
@@ -73,8 +70,8 @@ enum Tokens {
             static let headerBlockToForm: CGFloat = Tokens.Spacing.x4l
             /// Space between stacked inputs and primary actions inside the form.
             static let formControls: CGFloat = Tokens.Spacing.xl
-            /// Space between stacked name / gender / DOB rows (Figma v2 frames 8–10).
-            static let onboardingStackedFieldGap: CGFloat = 68
+            /// Space between stacked name / gender / DOB rows. Figma `124:6246` gap=12.
+            static let onboardingStackedFieldGap: CGFloat = Tokens.Spacing.lg
         }
 
         enum Typography {

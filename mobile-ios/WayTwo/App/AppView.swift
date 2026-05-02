@@ -28,18 +28,18 @@ struct AppView: View {
                         onForgot: { state.auth.flow = .forgot }
                     )
                     .navigationTitle("auth.enterPasswordTitle")
-                    .authScreenWithoutVisibleNavigationTitle()
+                    .hidesNavigationBarTitle()
                     .navigationDestination(isPresented: forgotDestinationBinding) {
                         ForgotPasswordView(
                             state: $state.auth,
                             onSubmit: resetPassword
                         )
                         .navigationTitle("auth.resetPasswordTitle")
-                        .authScreenWithoutVisibleNavigationTitle()
+                        .hidesNavigationBarTitle()
                         .navigationDestination(isPresented: emailSentDestinationBinding) {
                             emailSentView
                                 .navigationTitle("auth.emailSentTitle")
-                                .authScreenWithoutVisibleNavigationTitle()
+                                .hidesNavigationBarTitle()
                         }
                     }
                 }
@@ -49,12 +49,12 @@ struct AppView: View {
                         onSignUp: signUp
                     )
                     .navigationTitle("auth.createAccountTitle")
-                    .authScreenWithoutVisibleNavigationTitle()
+                    .hidesNavigationBarTitle()
                 }
                 .navigationDestination(isPresented: newPasswordDestinationBinding) {
                     NewPasswordView(state: $state.auth, onSave: updatePassword)
                         .navigationTitle("auth.createNewPasswordTitle")
-                        .authScreenWithoutVisibleNavigationTitle()
+                        .hidesNavigationBarTitle()
                 }
         }
     }
@@ -157,27 +157,29 @@ struct AppView: View {
                     state.onboarding.step = .you
                 }
             )
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: Binding(
-                get: { state.onboarding.step == .you },
+                get: { state.onboarding.step == .you || state.onboarding.step == .look },
                 set: { if !$0 { state.onboarding.step = .intro } }
             )) {
                 OnboardingYouView(state: $state.onboarding) {
+                    saveOnboardingYouStep()
                     state.onboarding.step = .look
                 }
                 .navigationTitle("onboarding.you.title")
-                .authScreenWithoutVisibleNavigationTitle()
-            }
-            .navigationDestination(isPresented: Binding(
-                get: { state.onboarding.step == .look },
-                set: { if !$0 { state.onboarding.step = .you } }
-            )) {
-                OnboardingLookView(state: $state.onboarding) {
-                    Task {
-                        await completeOnboarding()
+                .hidesNavigationBarTitle()
+                .navigationDestination(isPresented: Binding(
+                    get: { state.onboarding.step == .look },
+                    set: { if !$0 { state.onboarding.step = .you } }
+                )) {
+                    OnboardingLookView(state: $state.onboarding) {
+                        Task {
+                            await completeOnboarding()
+                        }
                     }
+                    .navigationTitle("onboarding.look.title")
+                    .hidesNavigationBarTitle()
                 }
-                .navigationTitle("onboarding.look.title")
-                .authScreenWithoutVisibleNavigationTitle()
             }
         }
     }
@@ -200,108 +202,5 @@ struct AppView: View {
         }
     }
 
-    private func continueWithEmail() {
-        Task {
-            do {
-                let registered = try await container.api.checkEmailRegistered(email: state.auth.email)
-                state.auth.password = ""
-                state.auth.flow = registered ? .password : .signup
-                state.auth.errorKey = nil
-            } catch {
-                state.auth.errorKey = "auth.checkEmailFailed"
-            }
-        }
-    }
-
-    private func signInPassword() {
-        Task {
-            do {
-                let session = try await container.supabase.signInWithPassword(email: state.auth.email, password: state.auth.password)
-                _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
-                state.auth.password = ""
-                state.isAuthenticated = true
-                state.auth.errorKey = nil
-            } catch {
-                state.auth.errorKey = "auth.invalidEmailOrPassword"
-            }
-        }
-    }
-
-    private func signUp() {
-        Task {
-            do {
-                try await container.supabase.signUp(email: state.auth.email, password: state.auth.password)
-                state.auth.password = ""
-                state.auth.flow = .email
-                state.auth.errorKey = nil
-            } catch {
-                state.auth.errorKey = "auth.couldNotCreateAccount"
-            }
-        }
-    }
-
-    private func resetPassword() {
-        Task {
-            do {
-                try await container.supabase.resetPassword(email: state.auth.email)
-                state.auth.flow = .emailSent
-            } catch {
-                state.auth.errorKey = "auth.couldNotSendReset"
-            }
-        }
-    }
-
-    private func updatePassword() {
-        Task {
-            do {
-                try await container.supabase.updatePassword(state.auth.newPassword)
-                state.auth.newPassword = ""
-                state.auth.flow = .email
-            } catch {
-                state.auth.errorKey = "auth.couldNotUpdatePassword"
-            }
-        }
-    }
-
-    private func signInWithApple(idToken: String, nonce: String) {
-        Task {
-            do {
-                let session = try await container.supabase.signInWithApple(idToken: idToken, nonce: nonce)
-                _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
-                state.isAuthenticated = true
-            } catch {
-                state.auth.errorKey = "auth.appleSignInError"
-            }
-        }
-    }
-
-    private func completeOnboarding() async {
-        let token = container.keychain.loadSession()?.accessToken
-        await container.profileSync.pushCompleteOnboarding(accessToken: token)
-        state.hasCompletedOnboarding = true
-    }
-
-    private func logout() async {
-        do {
-            try await container.supabase.signOut()
-            container.keychain.deleteSession()
-            state = AppReducer.State()
-        } catch {
-            state.settings.errorKey = "error.title"
-        }
-    }
 }
 
-private extension View {
-    /// Keeps `navigationTitle` for back-stack context, but removes the visible title area in the navigation bar.
-    func authScreenWithoutVisibleNavigationTitle() -> some View {
-        navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Color.clear
-                        .frame(width: 0, height: 0)
-                        .accessibilityHidden(true)
-                }
-            }
-    }
-}

@@ -60,9 +60,16 @@ struct SignInPasswordView: View {
 }
 
 #Preview {
-    SignInPasswordView(
-        state: .constant({ var s = AuthReducer.State(); s.email = "hello@example.com"; return s }()),
-        onSubmit: {},
-        onForgot: {}
-    )
+    NavigationStack {
+        Color.clear
+            .navigationDestination(isPresented: .constant(true)) {
+                SignInPasswordView(
+                    state: .constant({ var s = AuthReducer.State(); s.email = "hello@example.com"; return s }()),
+                    onSubmit: {},
+                    onForgot: {}
+                )
+                .navigationTitle("auth.enterPasswordTitle")
+                .hidesNavigationBarTitle()
+            }
+    }
 }

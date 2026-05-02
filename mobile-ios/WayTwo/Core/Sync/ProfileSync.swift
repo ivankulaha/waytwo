@@ -22,9 +22,9 @@ final class ProfileSync {
         }
     }
 
-    func pushProfile(partial: [String: String], accessToken: String?) async {
-        database.upsertProfileFields(partial)
-        outbox.enqueue(operation: .patchProfile, entityId: "profile", payload: partial)
+    func pushProfile(patch: ProfilePatch, accessToken: String?) async {
+        database.upsertProfileFields(patch)
+        outbox.enqueue(operation: .patchProfile, entityId: "profile", payload: patch.asDictionary())
         await outbox.flush(accessToken: accessToken)
     }
 
