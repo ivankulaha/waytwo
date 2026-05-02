@@ -26,8 +26,12 @@ struct OnboardingIntroView: View {
 }
 
 #Preview {
-    OnboardingIntroView(
-        state: .constant(OnboardingReducer.State()),
-        onStart: {}
-    )
+    NavigationStack {
+        OnboardingIntroView(
+            state: .constant(OnboardingReducer.State()),
+            onStart: {}
+        )
+        .navigationTitle("onboarding.intro.title")
+        .toolbar(.hidden, for: .navigationBar)
+    }
 }

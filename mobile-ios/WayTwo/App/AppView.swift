@@ -157,6 +157,7 @@ struct AppView: View {
                     state.onboarding.step = .you
                 }
             )
+            .navigationTitle("onboarding.intro.title")
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: Binding(
                 get: { state.onboarding.step == .you || state.onboarding.step == .look },
