@@ -1,11 +1,12 @@
 import SwiftUI
 
 enum Gradients {
-    /// Auth radial blob stops (dark theme). Uses extra alpha stops so the
-    /// purple-to-blue glow does not reveal a circular contour in SwiftUI.
+    /// Auth radial blob stops (dark theme). Blue-forward core (not white-tint);
+    /// extra alpha stops avoid a hard circular contour in SwiftUI.
     static let authPrimaryStops: [Gradient.Stop] = [
-        .init(color: Color(red: 0.71, green: 0.4, blue: 1.0), location: 0.0),
-        .init(color: Color(red: 0.61, green: 0.42, blue: 0.98).opacity(0.78), location: 0.34),
+        .init(color: Color(red: 0.48, green: 0.6, blue: 1.0), location: 0.0),
+        .init(color: Color(red: 0.56, green: 0.44, blue: 1.0), location: 0.14),
+        .init(color: Color(red: 0.36, green: 0.46, blue: 0.97).opacity(0.78), location: 0.34),
         .init(color: Color(red: 0.31, green: 0.43, blue: 0.95).opacity(0.38), location: 0.68),
         .init(color: Color(red: 0.31, green: 0.43, blue: 0.95).opacity(0), location: 1.0),
     ]

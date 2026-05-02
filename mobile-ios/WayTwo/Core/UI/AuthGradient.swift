@@ -13,13 +13,13 @@ struct AuthGradient: View {
     /// center above the visible viewport.
     var verticalCenterFromTop: CGFloat = -135
 
-    /// Horizontal radius as a fraction of screen width. RN preset uses
-    /// `1.6` so the side caps fade off-screen.
-    var horizontalRadiusFactor: CGFloat = 1.6
+    /// Horizontal radius as a fraction of screen width. RN `topAnchoredWide`
+    /// uses `1.6`; iOS auth shell scales that by `1.3` for a larger glow.
+    var horizontalRadiusFactor: CGFloat = 2.08
 
-    /// Vertical radius as a fraction of screen WIDTH (not height). RN
-    /// preset uses `0.95`, producing a wide ellipse with aspect ≈ 0.59.
-    var verticalRadiusFactor: CGFloat = 0.95
+    /// Vertical radius as a fraction of screen WIDTH (not height). RN uses
+    /// `0.95`; same `1.3` scale as horizontal to preserve ellipse aspect.
+    var verticalRadiusFactor: CGFloat = 1.235
 
     /// Gradient stops. Defaults to the auth purple → blue → transparent.
     var stops: [Gradient.Stop] = Gradients.authPrimaryStops
