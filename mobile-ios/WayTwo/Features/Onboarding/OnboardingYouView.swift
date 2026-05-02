@@ -4,6 +4,10 @@ struct OnboardingYouView: View {
     @Binding var state: OnboardingReducer.State
     let onNext: () -> Void
 
+    private var canProceedYouStep: Bool {
+        !state.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !state.gender.isEmpty
+    }
+
     var body: some View {
         ZStack {
             AppColors.surface.ignoresSafeArea()
@@ -14,18 +18,29 @@ struct OnboardingYouView: View {
                 }
             } formContent: {
                 VStack(spacing: 0) {
-                    VStack(spacing: Tokens.FormScreen.Spacing.formControls) {
+                    VStack(spacing: Tokens.FormScreen.Spacing.onboardingStackedFieldGap) {
                         AppTextField(
                             placeholder: "onboarding.you.namePlaceholder",
                             text: $state.name
                         )
                         OnboardingGenderPickerField(selection: $state.gender)
                         OnboardingDateOfBirthField(dateString: $state.dateOfBirth)
-                        PrimaryButton(titleKey: "onboarding.you.next", action: onNext)
-                        if let errorKey = state.errorKey {
-                            Text(LocalizedStringKey(errorKey))
-                                .foregroundStyle(AppColors.error)
-                        }
+                    }
+                    Spacer().frame(height: Tokens.Spacing.x4l)
+                    HStack {
+                        Spacer(minLength: 0)
+                        PrimaryButton(
+                            titleKey: "onboarding.you.next",
+                            isDisabled: !canProceedYouStep,
+                            maxContentWidth: Tokens.Size.onboardingFormPrimaryCtaWidth,
+                            action: onNext
+                        )
+                        Spacer(minLength: 0)
+                    }
+                    if let errorKey = state.errorKey {
+                        Text(LocalizedStringKey(errorKey))
+                            .foregroundStyle(AppColors.error)
+                            .padding(.top, Tokens.Spacing.md)
                     }
                 }
             }
@@ -48,29 +63,35 @@ private enum OnboardingGender: String, CaseIterable, Identifiable {
         }
     }
 
-    static func stored(_ raw: String) -> Self {
-        Self(rawValue: raw) ?? .male
-    }
 }
 
 private struct OnboardingGenderPickerField: View {
     @Binding var selection: String
 
-    private var gender: OnboardingGender {
-        OnboardingGender.stored(selection)
+    private var selectedGender: OnboardingGender? {
+        OnboardingGender(rawValue: selection)
     }
 
     var body: some View {
         ZStack(alignment: .leading) {
             HStack(alignment: .center, spacing: Tokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.xxs) {
-                    Text("onboarding.you.genderLabel")
-                        .font(.system(size: Tokens.FontSize.sm, weight: .regular))
-                        .foregroundStyle(AppColors.textSecondary)
-                    Text(LocalizedStringKey(gender.titleKey))
-                        .font(.system(size: Tokens.FontSize.lg, weight: .medium))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
+                Group {
+                    if let option = selectedGender {
+                        VStack(alignment: .leading, spacing: Tokens.Spacing.xxs) {
+                            Text("onboarding.you.genderLabel")
+                                .font(.system(size: Tokens.FontSize.sm, weight: .regular))
+                                .foregroundStyle(AppColors.textSecondary)
+                            Text(LocalizedStringKey(option.titleKey))
+                                .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                                .foregroundStyle(AppColors.textPrimary)
+                                .lineLimit(1)
+                        }
+                    } else {
+                        Text("onboarding.you.genderLabel")
+                            .font(.system(size: Tokens.FontSize.lg, weight: .medium))
+                            .foregroundStyle(AppColors.textPlaceholder)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.up.chevron.down")

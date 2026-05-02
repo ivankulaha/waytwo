@@ -663,13 +663,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Date of birth"
+            "value" : "Date of birth (optional)"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Дата народження"
+            "value" : "Дата народження (необов’язково)"
           }
         }
       }

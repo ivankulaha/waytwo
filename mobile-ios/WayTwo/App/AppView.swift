@@ -176,6 +176,8 @@ struct AppView: View {
                         await completeOnboarding()
                     }
                 }
+                .navigationTitle("onboarding.look.title")
+                .authScreenWithoutVisibleNavigationTitle()
             }
         }
     }

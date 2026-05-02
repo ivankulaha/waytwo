@@ -22,4 +22,14 @@ enum Gradients {
             endRadius: 240
         )
     }
+
+    /// Brighter stops than `homeGlow` so tint reaches the profile color panel below the avatar.
+    static func profileGlowStops(color: Color) -> [Gradient.Stop] {
+        [
+            .init(color: color.opacity(0.65), location: 0.0),
+            .init(color: color.opacity(0.45), location: 0.35),
+            .init(color: color.opacity(0.18), location: 0.65),
+            .init(color: color.opacity(0.0),  location: 1.0),
+        ]
+    }
 }

@@ -9,6 +9,8 @@ struct PrimaryButton: View {
     let titleKey: LocalizedStringKey
     var isLoading: Bool = false
     var isDisabled: Bool = false
+    /// When set (e.g. onboarding form CTA), caps width instead of expanding to the container.
+    var maxContentWidth: CGFloat? = nil
     let action: () -> Void
 
     private var inactive: Bool { isLoading || isDisabled }
@@ -31,7 +33,7 @@ struct PrimaryButton: View {
                         .foregroundStyle(inactive ? AppColors.buttonDisabledText : AppColors.buttonText)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: maxContentWidth ?? .infinity)
             .frame(height: Tokens.Size.buttonHeight)
             .background(inactive ? AppColors.buttonDisabledBackground : AppColors.buttonBackground)
             .clipShape(Capsule())
