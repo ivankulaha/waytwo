@@ -19,7 +19,7 @@ Phase 2 completed the following areas beyond the initial POC: full design token 
 ```
 mobile-ios/WayTwo/
 ├── App/
-│   ├── WayTwoApp.swift       – SwiftUI entry point; session restore + SwiftData profile restore + deep-link handler
+│   ├── WayTwoApp.swift       – SwiftUI entry point; `RootContent` with session restore, scene-phase flush, SwiftData profile restore, deep-link handler
 │   ├── AppContainer.swift    – dependency graph (single struct, live singleton)
 │   ├── AppReducer.swift      – root State, Action, reduce
 │   ├── AppView.swift         – root view; derives active screen from state; navigation + binding helpers
@@ -113,9 +113,10 @@ AppContainer
 ├── DatabaseClient     – SwiftData container; ProfileRecord + OutboxRecord models
 ├── SupabaseClient     – Supabase SDK wrapper (fully wired, not stubbed)
 ├── APIClient          – REST client for backend profile operations
-├── NetworkMonitor     – NWPathMonitor wrapper; publishes reachability state
-├── Outbox             – local write queue using DatabaseClient
-└── ProfileSync        – bidirectional sync (push + pull) using DatabaseClient + APIClient + Outbox
+├── NetworkMonitor     – NWPathMonitor wrapper; publishes reachability state; fires `onBecameOnline` on offline→online
+├── Outbox             – local write queue using DatabaseClient; `flush` processes pending rows
+├── ProfileSync        – enqueue-only pushes + `pullProfile`; no inline flush
+└── SyncCoordinator    – sole owner of `Outbox.flush` + post-flush `pullProfile`; triggered on foreground, network restore, session active, auth success
 ```
 
 `AppContainer.live` is a static singleton assembled at app start. Dependencies are injected into features via the container reference passed through the view hierarchy.
@@ -131,7 +132,7 @@ AppContainer
 | Keychain (`auth.token`) | `Security.framework` | Legacy single-token slot (backward compatibility) |
 | Keychain (`auth.session`) | `Security.framework` | JSON-encoded `Session` struct with `accessToken` + `refreshToken` |
 
-`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`ensureProfileRow`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`). Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly.
+`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`ensureProfileRow`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `markOnboardingCompleted`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`, `incrementOutboxAttempts`). Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly.
 
 ---
 
@@ -150,7 +151,9 @@ Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiUR
 
 ### Outbox pattern
 
-Profile mutations are written locally first, then enqueued in `OutboxRecord` with a typed operation. `Outbox.flush()` processes the queue and deletes records on delivery. Missing avatar files are discarded with a warning log rather than blocking the queue.
+Profile mutations are written locally first, then enqueued in `OutboxRecord` with a typed operation. **`SyncCoordinator` is the only component that calls `Outbox.flush`** — after app foreground (`scenePhase == .active`), when the network transitions from offline to online, after sign-in / Apple SSO, after restoring a session on cold launch, and after onboarding enqueue steps (via `Task { await syncCoordinator.sessionBecameActive() }`). `Outbox.flush` deletes rows on success; on per-item failure it increments `attempts` and continues with the next item (no head-of-line blocking).
+
+`markOnboardingCompleted()` writes `onboardingCompletedAt` locally when the user finishes onboarding so a force-quit before the server ACK does not send them back through onboarding.
 
 Supported outbox operations:
 
@@ -162,18 +165,16 @@ Supported outbox operations:
 
 ### ProfileSync
 
-`ProfileSync` exposes four methods covering both directions:
+`ProfileSync` handles enqueue-only pushes and explicit pulls:
 
 | Method | Direction | When called |
 |--------|-----------|-------------|
-| `pullProfile(accessToken:)` | Remote → local | After onboarding completion; on reconnect |
-| `pushProfile(patch:accessToken:)` | Local → remote | Profile edit saved |
-| `pushAvatar(localURI:accessToken:)` | Local → remote | Avatar selected |
-| `pushCompleteOnboarding(accessToken:)` | Local → remote, then pull | Onboarding step 3 complete |
+| `pullProfile(accessToken:)` | Remote → local | After each successful `SyncCoordinator` flush |
+| `pushProfile(patch:)` | Local + enqueue | Profile / onboarding-you save |
+| `pushAvatar(localURI:)` | Enqueue | Avatar selected (when wired) |
+| `enqueueCompleteOnboarding()` | Enqueue | Onboarding step 3 complete |
 
-`pushCompleteOnboarding` enqueues the operation, flushes the outbox, then immediately pulls the remote profile to reconcile any server-side onboarding mutations.
-
-Failures in all sync methods are logged as warnings and do not crash the app.
+Write-path methods never `await Outbox.flush`. Failures during flush are logged as warnings and do not crash the app.
 
 ---
 
@@ -187,7 +188,13 @@ Shared design values are defined in `Core/Design/` and must be used by all views
 |-----------|--------|
 | `Tokens.Spacing` | `xs` (4), `md` (8), `lg` (12), `xl` (16), `x2l` (20), `x3l` (24), `x4l` (32) |
 | `Tokens.Radius` | `md` (12), `lg` (16), `full` (28) |
-| `Tokens.Size` | `inputHeight` / `buttonHeight` (56), `avatar` (120), `swatchTap` (48), `swatchInner` (36) |
+| `Tokens.Size` | `inputHeight` / `buttonHeight` (56), `avatar` (120), `cropCircle` (300), `swatchTap` (48), `swatchInner` (36) |
+
+### Profile photo (crop)
+
+- **`Core/UI/AvatarCropView`** — Full-screen crop: pinch-to-zoom, drag-to-pan, circular mask; confirm renders a clipped JPEG via **`AvatarPhotoFileStore.saveJPEG`** to a temp file path consumed by reducers.
+- **`Core/UI/CameraPickerView`** — `UIViewControllerRepresentable` over `UIImagePickerController` (`.camera`, front-facing). `NSCameraUsageDescription` is set in `WayTwo/Info.plist`.
+- **`OnboardingLookView`** / **`ProfileEditView`** — `.confirmationDialog` for **Camera** / **Photo Library** / **Cancel**; library uses SwiftUI **`PhotosPicker`** (no `NSPhotoLibraryUsageDescription`); after selection or capture, **`fullScreenCover(item:)`** presents **`AvatarCropView`**.
 
 ### `AppColors` (semantic colors)
 

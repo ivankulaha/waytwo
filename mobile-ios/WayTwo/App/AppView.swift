@@ -165,7 +165,6 @@ struct AppView: View {
             )) {
                 OnboardingYouView(state: $state.onboarding) {
                     saveOnboardingYouStep()
-                    state.onboarding.step = .look
                 }
                 .navigationTitle("onboarding.you.title")
                 .hidesNavigationBarTitle()
@@ -174,9 +173,7 @@ struct AppView: View {
                     set: { if !$0 { state.onboarding.step = .you } }
                 )) {
                     OnboardingLookView(state: $state.onboarding) {
-                        Task {
-                            await completeOnboarding()
-                        }
+                        completeOnboarding()
                     }
                     .navigationTitle("onboarding.look.title")
                     .hidesNavigationBarTitle()

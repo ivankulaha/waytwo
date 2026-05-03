@@ -22,22 +22,19 @@ final class ProfileSync {
         }
     }
 
-    func pushProfile(patch: ProfilePatch, accessToken: String?) async {
+    func pushProfile(patch: ProfilePatch) {
+        logger.info("sync.pushProfile", metadata: ["op": "enqueue"])
         database.upsertProfileFields(patch)
         outbox.enqueue(operation: .patchProfile, entityId: "profile", payload: patch.asDictionary())
-        await outbox.flush(accessToken: accessToken)
     }
 
-    func pushAvatar(localURI: String, accessToken: String?) async {
+    func pushAvatar(localURI: String) {
+        logger.info("sync.pushAvatar", metadata: ["op": "enqueue"])
         outbox.enqueue(operation: .uploadAvatar, entityId: "avatar", payload: ["photo_local_uri": localURI])
-        await outbox.flush(accessToken: accessToken)
     }
 
-    func pushCompleteOnboarding(accessToken: String?) async {
+    func enqueueCompleteOnboarding() {
+        logger.info("sync.completeOnboarding", metadata: ["op": "enqueue"])
         outbox.enqueue(operation: .completeOnboarding, entityId: "onboarding", payload: [:])
-        await outbox.flush(accessToken: accessToken)
-        if let accessToken {
-            await pullProfile(accessToken: accessToken)
-        }
     }
 }

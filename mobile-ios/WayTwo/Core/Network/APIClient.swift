@@ -105,7 +105,7 @@ struct APIClient {
             throw URLError(.badServerResponse)
         }
 
-        logger.debug("api.request.success", metadata: [
+        logger.info("api.request.completed", metadata: [
             "method": method,
             "path": path,
             "statusCode": "\(httpResponse.statusCode)"

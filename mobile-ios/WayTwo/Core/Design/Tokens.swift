@@ -43,6 +43,8 @@ enum Tokens {
         /// Label typography on `PrimaryButton` (Figma: 24 line height).
         static let primaryButtonLabelLineHeight: CGFloat = 24
         static let avatar: CGFloat = 120
+        /// Circular crop window diameter in `AvatarCropView`.
+        static let cropCircle: CGFloat = 300
         static let swatchTap: CGFloat = 48
         static let swatchInner: CGFloat = 36
         static let dividerThickness: CGFloat = 1

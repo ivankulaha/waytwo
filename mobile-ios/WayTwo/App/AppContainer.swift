@@ -9,6 +9,7 @@ struct AppContainer {
     let profileSync: ProfileSync
     let outbox: Outbox
     let networkMonitor: NetworkMonitor
+    let syncCoordinator: SyncCoordinator
 
     static let live: AppContainer = {
         let logger = AppLogger()
@@ -19,6 +20,13 @@ struct AppContainer {
         let networkMonitor = NetworkMonitor(logger: logger)
         let outbox = Outbox(database: database, apiClient: api, logger: logger)
         let profileSync = ProfileSync(database: database, apiClient: api, outbox: outbox, logger: logger)
+        let syncCoordinator = SyncCoordinator(
+            outbox: outbox,
+            profileSync: profileSync,
+            keychain: keychain,
+            networkMonitor: networkMonitor,
+            logger: logger
+        )
 
         return AppContainer(
             logger: logger,
@@ -28,7 +36,8 @@ struct AppContainer {
             api: api,
             profileSync: profileSync,
             outbox: outbox,
-            networkMonitor: networkMonitor
+            networkMonitor: networkMonitor,
+            syncCoordinator: syncCoordinator
         )
     }()
 }

@@ -23,6 +23,7 @@ extension AppView {
                 state.isAuthenticated = true
                 container.database.ensureProfileRow(userId: "local")
                 state.auth.errorKey = nil
+                Task { await container.syncCoordinator.sessionBecameActive() }
             } catch {
                 state.auth.errorKey = "auth.invalidEmailOrPassword"
             }
@@ -72,6 +73,7 @@ extension AppView {
                 _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
                 state.isAuthenticated = true
                 container.database.ensureProfileRow(userId: "local")
+                Task { await container.syncCoordinator.sessionBecameActive() }
             } catch {
                 state.auth.errorKey = "auth.appleSignInError"
             }

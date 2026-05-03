@@ -25,8 +25,13 @@ final class Outbox {
     }
 
     func flush(accessToken: String?) async {
-        guard let accessToken else { return }
-        for item in database.fetchOutbox() {
+        guard let accessToken else {
+            logger.info("outbox.flush", metadata: ["op": "skip", "reason": "no_token"])
+            return
+        }
+        let items = database.fetchOutbox()
+        logger.info("outbox.flush", metadata: ["op": "start", "count": "\(items.count)"])
+        for item in items {
             let payload = parsePayload(item.payload)
             do {
                 if item.operation == Operation.patchProfile.rawValue {
@@ -44,9 +49,11 @@ final class Outbox {
                 database.deleteOutbox(id: item.id)
             } catch {
                 logger.warn("outbox.flush", metadata: ["status": "failed", "operation": item.operation])
-                break
+                database.incrementOutboxAttempts(id: item.id, message: "request_failed")
+                continue
             }
         }
+        logger.info("outbox.flush", metadata: ["op": "done"])
     }
 
     private func parsePayload(_ payload: String) -> [String: String] {

@@ -136,7 +136,10 @@ final class DatabaseClient {
     func upsertProfileFields(_ patch: ProfilePatch) {
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
-        guard let record = try? context.fetch(descriptor).first else { return }
+        guard let record = try? context.fetch(descriptor).first else {
+            logger.warn("db.upsertProfile", metadata: ["status": "missing-row"])
+            return
+        }
         if let v = patch.displayName { record.displayName = v }
         if let v = patch.gender { record.gender = v }
         if let v = patch.dateOfBirth { record.dateOfBirth = v }
@@ -152,11 +155,34 @@ final class DatabaseClient {
         return try? modelContainer.mainContext.fetch(descriptor).first
     }
 
+    func markOnboardingCompleted() {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
+        guard let record = try? context.fetch(descriptor).first else {
+            logger.warn("db.markOnboardingCompleted", metadata: ["status": "missing-row"])
+            return
+        }
+        record.onboardingCompletedAt = ISO8601DateFormatter().string(from: Date())
+        record.updatedAt = Date()
+        record.dirty = true
+        try? context.save()
+    }
+
+    func incrementOutboxAttempts(id: UUID, message: String) {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<OutboxRecord>(predicate: #Predicate { $0.id == id })
+        guard let record = try? context.fetch(descriptor).first else { return }
+        record.attempts += 1
+        record.lastErrorAt = Date()
+        record.lastErrorMessage = message
+        try? context.save()
+    }
+
     func enqueueOutbox(operation: String, entityId: String, payload: String) {
         let context = modelContainer.mainContext
         context.insert(OutboxRecord(operation: operation, entityId: entityId, payload: payload))
         try? context.save()
-        logger.debug("outbox.enqueue", metadata: ["operation": operation])
+        logger.info("outbox.enqueue", metadata: ["operation": operation])
     }
 
     func fetchOutbox(limit: Int = 20) -> [OutboxRecord] {

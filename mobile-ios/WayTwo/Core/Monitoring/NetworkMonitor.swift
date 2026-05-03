@@ -12,12 +12,18 @@ final class NetworkMonitor {
     private let logger: AppLogger
 
     private(set) var status: Status = .offline
+    var onBecameOnline: (() -> Void)?
 
     init(logger: AppLogger) {
         self.logger = logger
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
-            self.status = path.status == .satisfied ? .online : .offline
+            let newStatus: Status = path.status == .satisfied ? .online : .offline
+            let previous = self.status
+            if newStatus == .online && previous == .offline {
+                self.onBecameOnline?()
+            }
+            self.status = newStatus
             self.logger.debug("network.status", metadata: ["value": self.status == .online ? "online" : "offline"])
         }
         monitor.start(queue: queue)

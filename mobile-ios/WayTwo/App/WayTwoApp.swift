@@ -14,29 +14,7 @@ struct WayTwoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppView(state: $appState, container: appContainer)
-                .task {
-                    if appContainer.keychain.loadSession() != nil {
-                        appState.isAuthenticated = true
-                        appContainer.database.ensureProfileRow(userId: "local")
-                        if let profile = appContainer.database.getProfile() {
-                            if profile.onboardingCompletedAt != nil {
-                                appState.hasCompletedOnboarding = true
-                            } else {
-                                appState.onboarding.name = profile.displayName ?? ""
-                                appState.onboarding.gender = profile.gender ?? ""
-                                appState.onboarding.dateOfBirth = profile.dateOfBirth ?? ""
-                            }
-                        }
-                    } else {
-                        appState.isAuthenticated = false
-                    }
-                }
-                .onOpenURL { url in
-                    Task {
-                        await handleIncomingURL(url)
-                    }
-                }
+            RootContent(appContainer: appContainer, appState: $appState)
         }
         .modelContainer(appContainer.database.modelContainer)
     }
@@ -79,15 +57,53 @@ struct WayTwoApp: App {
         bar.compactAppearance = appearance
     }
 
-    private func handleIncomingURL(_ url: URL) async {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        let code = components.queryItems?.first(where: { $0.name == "code" })?.value
-        guard code != nil else { return }
-        do {
-            _ = try await appContainer.supabase.exchangeCodeForSession(url: url)
-            appState.auth.flow = .newPassword
-        } catch {
-            appState.auth.errorKey = "auth.couldNotUpdatePassword"
+    private struct RootContent: View {
+        let appContainer: AppContainer
+        @Binding var appState: AppReducer.State
+        @Environment(\.scenePhase) private var scenePhase
+
+        var body: some View {
+            AppView(state: $appState, container: appContainer)
+                .task {
+                    if appContainer.keychain.loadSession() != nil {
+                        appState.isAuthenticated = true
+                        appContainer.database.ensureProfileRow(userId: "local")
+                        if let profile = appContainer.database.getProfile() {
+                            if profile.onboardingCompletedAt != nil {
+                                appState.hasCompletedOnboarding = true
+                            } else {
+                                appState.onboarding.name = profile.displayName ?? ""
+                                appState.onboarding.gender = profile.gender ?? ""
+                                appState.onboarding.dateOfBirth = profile.dateOfBirth ?? ""
+                            }
+                        }
+                        Task { await appContainer.syncCoordinator.sessionBecameActive() }
+                    } else {
+                        appState.isAuthenticated = false
+                    }
+                }
+                .onChange(of: scenePhase) { _, new in
+                    if new == .active {
+                        appContainer.syncCoordinator.appBecameForeground()
+                    }
+                }
+                .onOpenURL { url in
+                    Task {
+                        await handleIncomingURL(url)
+                    }
+                }
+        }
+
+        private func handleIncomingURL(_ url: URL) async {
+            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+            let code = components.queryItems?.first(where: { $0.name == "code" })?.value
+            guard code != nil else { return }
+            do {
+                _ = try await appContainer.supabase.exchangeCodeForSession(url: url)
+                appState.auth.flow = .newPassword
+            } catch {
+                appState.auth.errorKey = "auth.couldNotUpdatePassword"
+            }
         }
     }
 }

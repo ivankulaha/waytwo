@@ -7,12 +7,17 @@ extension AppView {
             gender: state.onboarding.gender,
             dateOfBirth: state.onboarding.dateOfBirth
         )
-        container.database.upsertProfileFields(patch)
+        container.logger.info("onboarding.you.save", metadata: ["op": "enqueue"])
+        container.profileSync.pushProfile(patch: patch)
+        state.onboarding.step = .look
+        Task { await container.syncCoordinator.sessionBecameActive() }
     }
 
-    func completeOnboarding() async {
-        let token = container.keychain.loadSession()?.accessToken
-        await container.profileSync.pushCompleteOnboarding(accessToken: token)
+    func completeOnboarding() {
+        container.logger.info("onboarding.complete", metadata: ["op": "enqueue"])
+        container.profileSync.enqueueCompleteOnboarding()
+        container.database.markOnboardingCompleted()
         state.hasCompletedOnboarding = true
+        Task { await container.syncCoordinator.sessionBecameActive() }
     }
 }

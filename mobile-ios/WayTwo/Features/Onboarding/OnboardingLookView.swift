@@ -2,12 +2,19 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+private struct AvatarCropPayload: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 struct OnboardingLookView: View {
     @Binding var state: OnboardingReducer.State
     let onFinish: () -> Void
 
     @State private var pickerItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
+    @State private var showCamera = false
+    @State private var cropPayload: AvatarCropPayload?
     @State private var avatarGlobalMidY: CGFloat = 280
 
     private let logger = AppLogger()
@@ -67,7 +74,24 @@ struct OnboardingLookView: View {
         .photosPicker(isPresented: $showPhotoPicker, selection: $pickerItem, matching: .images)
         .onChange(of: pickerItem) { _, newItem in
             guard let newItem else { return }
-            Task { await persistPickedPhoto(newItem) }
+            Task { await loadLibraryImageForCrop(newItem) }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPickerView(
+                isPresented: $showCamera,
+                onPick: { cropPayload = AvatarCropPayload(image: $0) },
+                onCancel: {}
+            )
+        }
+        .fullScreenCover(item: $cropPayload) { payload in
+            AvatarCropView(
+                image: payload.image,
+                onConfirm: { image in
+                    saveConfirmedAvatar(image)
+                    cropPayload = nil
+                },
+                onCancel: { cropPayload = nil }
+            )
         }
     }
 
@@ -93,14 +117,13 @@ struct OnboardingLookView: View {
     }
 
     private var avatarButton: some View {
-        Button {
-            showPhotoPicker = true
+        Menu {
+            photoSourceMenuItems
         } label: {
             avatarContent
                 .frame(width: Tokens.Size.avatar, height: Tokens.Size.avatar)
                 .clipShape(Circle())
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(LocalizedStringKey("onboarding.look.changePhoto"))
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.frame(in: .global).midY
@@ -127,15 +150,30 @@ struct OnboardingLookView: View {
     }
 
     private var changePhotoControl: some View {
-        Button {
-            showPhotoPicker = true
+        Menu {
+            photoSourceMenuItems
         } label: {
             Text("onboarding.look.changePhoto")
                 .font(.system(size: Tokens.FontSize.xl, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var photoSourceMenuItems: some View {
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            Button {
+                showCamera = true
+            } label: {
+                Label("crop.sourceCamera", systemImage: "camera")
+            }
+        }
+        Button {
+            showPhotoPicker = true
+        } label: {
+            Label("crop.sourceLibrary", systemImage: "photo.on.rectangle")
+        }
     }
 
     private var profileColorGlassPanel: some View {
@@ -171,23 +209,36 @@ struct OnboardingLookView: View {
         }
     }
 
-    // MARK: - Photo import
-
-    private func persistPickedPhoto(_ item: PhotosPickerItem) async {
+    private func loadLibraryImageForCrop(_ item: PhotosPickerItem) async {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 logger.warn("onboarding.look.photoImportEmpty")
+                await MainActor.run { pickerItem = nil }
                 return
             }
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString, isDirectory: false)
-                .appendingPathExtension("jpg")
-            try data.write(to: url, options: .atomic)
+            guard let uiImage = UIImage(data: data) else {
+                logger.warn("onboarding.look.photoImportEmpty")
+                await MainActor.run { pickerItem = nil }
+                return
+            }
             await MainActor.run {
-                state.photoLocalPath = url.path
+                pickerItem = nil
+                showPhotoPicker = false
+                cropPayload = AvatarCropPayload(image: uiImage)
             }
         } catch {
             logger.warn("onboarding.look.photoImportFailed", metadata: ["reason": String(describing: error)])
+            await MainActor.run { pickerItem = nil }
+        }
+    }
+
+    private func saveConfirmedAvatar(_ image: UIImage) {
+        do {
+            let url = try AvatarPhotoFileStore.saveJPEG(image)
+            state.photoLocalPath = url.path
+            logger.info("onboarding.look.avatarCropped", metadata: ["op": "avatar_crop", "status": "saved"])
+        } catch {
+            logger.warn("onboarding.look.photoSaveFailed", metadata: ["reason": String(describing: error)])
         }
     }
 }
