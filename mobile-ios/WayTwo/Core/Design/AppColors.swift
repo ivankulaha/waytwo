@@ -25,9 +25,9 @@ enum AppColors {
     static let inputBorder = adaptive(light: uiRGB(196, 196, 204), dark: uiRGB(47, 47, 47))
     static let inputBorderFocused = adaptive(light: .black, dark: .white)
 
-    static let buttonBackground = Color.white
-    static let buttonText = Color.black
-    static let buttonPressedBackground = adaptive(light: uiRGB(240, 240, 240), dark: uiRGB(224, 224, 224))
+    static let buttonBackground = adaptive(light: .black, dark: .white)
+    static let buttonText = adaptive(light: .white, dark: .black)
+    static let buttonPressedBackground = adaptive(light: uiRGB(36, 36, 36), dark: uiRGB(215, 215, 215))
     static let buttonDisabledBackground = adaptive(light: uiRGB(228, 228, 231), dark: uiRGB(38, 38, 38))
     static let buttonDisabledText = adaptive(light: uiRGB(161, 161, 170), dark: uiRGB(115, 115, 115))
 

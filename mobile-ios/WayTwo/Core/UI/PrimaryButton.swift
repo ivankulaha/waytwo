@@ -3,8 +3,8 @@ import UIKit
 
 /// Full-width pill CTA used across auth and onboarding flows. Mirrors the
 /// React Native `<PrimaryButton>` component: capsule shape, height
-/// `Tokens.Size.buttonHeight`, white background in dark theme, and a
-/// dark-grey disabled state matching `palette.buttonDisabledBgDark`.
+/// `Tokens.Size.buttonHeight`, adaptive fill/text per Figma `2067:5163`
+/// (light: black fill, dark: white fill), and disabled states from `AppColors`.
 struct PrimaryButton: View {
     let titleKey: LocalizedStringKey
     var isLoading: Bool = false
