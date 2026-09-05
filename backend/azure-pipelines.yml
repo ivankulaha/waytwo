@@ -15,7 +15,7 @@ pr:
       - backend/**
 
 variables:
-  acrName: 'waytwocontainerregistery-hzc8eeg3fkb9dsgn.azurecr.io'
+  acrName: 'waytwocontainerregistery.azurecr.io'
   webAppName: 'way-two-api-mobile'
   imageRepository: 'way-two'
   imageTag: '$(Build.BuildId)'
