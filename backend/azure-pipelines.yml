@@ -16,6 +16,8 @@ pr:
 
 variables:
   acrName: 'waytwocontainerregistery.azurecr.io'
+  acrServiceConnection: 'arc-way-two'
+  azureSubscription: 'arm-way-two-dev'
   webAppName: 'way-two-api-mobile'
   imageRepository: 'way-two'
   imageTag: '$(Build.BuildId)'
@@ -47,7 +49,7 @@ stages:
             condition: ne(variables['Build.Reason'], 'PullRequest')
             inputs:
               command: buildAndPush
-              containerRegistry: $(acrServiceConnection)
+              containerRegistry: ${{ variables.acrServiceConnection }}
               repository: $(imageRepository)
               dockerfile: backend/api/Dockerfile
               buildContext: backend/api
@@ -67,6 +69,6 @@ stages:
           - task: AzureWebAppContainer@1
             displayName: Update container image on Web App
             inputs:
-              azureSubscription: $(azureSubscription)
+              azureSubscription: ${{ variables.azureSubscription }}
               appName: $(webAppName)
               containers: $(acrName)/$(imageRepository):$(imageTag)
