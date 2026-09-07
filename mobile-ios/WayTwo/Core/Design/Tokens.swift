@@ -30,6 +30,7 @@ enum Tokens {
         static let lg: CGFloat = 16
         static let xl: CGFloat = 17
         static let x2l: CGFloat = 24
+        static let avatarInitial: CGFloat = 48
     }
 
     enum Size {
@@ -43,6 +44,8 @@ enum Tokens {
         /// Label typography on `PrimaryButton` (Figma: 24 line height).
         static let primaryButtonLabelLineHeight: CGFloat = 24
         static let avatar: CGFloat = 120
+        /// Figma invite/home glow radius (`148:2262`, `326:5949`).
+        static let glowRadius: CGFloat = 240
         /// Circular crop window diameter in `AvatarCropView`.
         static let cropCircle: CGFloat = 300
         static let swatchTap: CGFloat = 48

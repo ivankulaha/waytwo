@@ -35,6 +35,7 @@ enum AppColors {
 
     static let glassBg = adaptive(light: uiRGB(0, 0, 0, alpha: 0.08), dark: uiRGB(255, 255, 255, alpha: 0.12))
     static let glassBorder = adaptive(light: uiRGB(0, 0, 0, alpha: 0.15), dark: uiRGB(255, 255, 255, alpha: 0.22))
+    static let avatarGlassBg = adaptive(light: uiRGB(0, 0, 0, alpha: 0.04), dark: uiRGB(255, 255, 255, alpha: 0.2))
 
     static let profileFallback = Color(red: 107 / 255, green: 31 / 255, blue: 221 / 255)
 

@@ -226,7 +226,6 @@ private struct OnboardingDateOfBirthField: View {
                 .toolbarBackground(.visible, for: .navigationBar)
             }
             .background(AppColors.surface)
-            .preferredColorScheme(.dark)
             .tint(AppColors.textPrimary)
             .presentationBackground(AppColors.surface)
             .presentationDetents([.medium, .large])

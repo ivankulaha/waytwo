@@ -69,7 +69,6 @@ struct OnboardingLookView: View {
                 .padding(.horizontal, Tokens.Spacing.xl)
             }
         }
-        .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.4), value: state.colorId)
         .photosPicker(isPresented: $showPhotoPicker, selection: $pickerItem, matching: .images)
         .onChange(of: pickerItem) { _, newItem in
@@ -95,11 +94,9 @@ struct OnboardingLookView: View {
         }
     }
 
-    private static let glowRadius: CGFloat = 240
-
     private var glowLayer: some View {
         GeometryReader { proxy in
-            let r = Self.glowRadius
+            let r = Tokens.Size.glowRadius
             Rectangle()
                 .fill(
                     RadialGradient(
@@ -120,32 +117,18 @@ struct OnboardingLookView: View {
         Menu {
             photoSourceMenuItems
         } label: {
-            avatarContent
-                .frame(width: Tokens.Size.avatar, height: Tokens.Size.avatar)
-                .clipShape(Circle())
+            ProfileAvatarView(
+                colorId: state.colorId,
+                photo: profilePhoto,
+                displayName: state.name,
+                showsName: false
+            )
         }
         .accessibilityLabel(LocalizedStringKey("onboarding.look.changePhoto"))
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.frame(in: .global).midY
         } action: { midY in
             avatarGlobalMidY = midY
-        }
-    }
-
-    @ViewBuilder
-    private var avatarContent: some View {
-        if let image = profilePhoto {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-        } else {
-            ZStack {
-                Circle()
-                    .fill(selectedProfileColor.opacity(0.4))
-                Image(systemName: "person.fill")
-                    .font(.system(size: 48, weight: .medium))
-                    .foregroundStyle(AppColors.textPrimary.opacity(0.85))
-            }
         }
     }
 
@@ -266,47 +249,6 @@ private struct ProfileColorSwatchView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-private struct GlassPanelBackground: ViewModifier {
-    let cornerRadius: CGFloat
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(
-                    .regular.interactive(),
-                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                )
-        } else {
-            content
-                .background {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Color.white.opacity(0.12), location: 0),
-                                    .init(color: Color.clear, location: 0.5),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .allowsHitTesting(false)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(AppColors.glassBorder, lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
     }
 }
 
