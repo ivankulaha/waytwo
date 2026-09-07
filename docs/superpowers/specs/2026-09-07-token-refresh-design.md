@@ -23,33 +23,55 @@ tracing the code, not guessed):
   after ~1 hour by default, so any session older than that fails every
   backend call until the user manually signs out and back in.
 
-## Key finding: the SDK already does most of this
+## Key finding: `client.auth` is already a complete, self-persisting session manager
 
-Inspecting `supabase-swift`'s `AuthClient.swift` (via
+Inspecting `supabase-swift`'s source (via
 `~/Library/Developer/Xcode/DerivedData/.../SourcePackages/checkouts/supabase-swift`):
 
-- `client.auth.session` (async getter): *"Returns the session, refreshing it
-  if necessary."* Backed by an internal `SessionManager` (SDK-internal type,
-  not to be confused with the one added below) with an `autoRefreshToken`
-  config (default `true`) that starts a background refresh timer and also
-  ticks on app foreground.
-- `client.auth.setSession(accessToken:refreshToken:)`: decodes the JWT `exp`
-  claim; if already expired, calls `refreshSession(refreshToken:)`
-  automatically and stores the result in the SDK's internal session state.
-  If not expired, it hydrates the SDK's internal state directly from the
-  given tokens without a network call.
-- `client.auth.refreshSession(refreshToken:)`: explicit forced refresh.
-- `client.auth.onAuthStateChange`: emits a `.tokenRefreshed` event whenever
-  the SDK refreshes in the background.
+- `client.auth` (`Auth.AuthClient`) is itself an `actor`, constructed once
+  inside our `SupabaseClient` wrapper's `client: Supabase.SupabaseClient` and
+  held for the app's whole process lifetime.
+- Its default local storage is `KeychainLocalStorage` — **its own Keychain
+  entry, entirely separate from our hand-rolled `KeychainClient`**:
+  ```
+  public static let defaultLocalStorage: any AuthLocalStorage = KeychainLocalStorage()
+  ```
+  This means the SDK persists and restores its session across app launches
+  on its own; no manual "hydrate from our Keychain" step is needed.
+- `client.auth.session` (async getter) is backed by the SDK-internal
+  `SessionManager` (an SDK-private type, not the one originally proposed
+  below):
+  ```swift
+  func session() async throws -> Session {
+    guard let currentSession = sessionStorage.get() else { throw AuthError.sessionMissing }
+    if !currentSession.isExpired { return currentSession }
+    return try await refreshSession(currentSession.refreshToken)
+  }
+  ```
+  i.e. every read is proactive: expired sessions are refreshed transparently.
+  Concurrent refreshes are single-flighted via an internal `inFlightRefreshTask`.
+- `AuthClient.init` subscribes to `didBecomeActive`/`willResignActive` and
+  starts/stops a periodic auto-refresh timer, so a foregrounded app also
+  refreshes ahead of expiry without anything reading `session` first.
+- When the SDK's own API layer gets back an error indicating the session/JWT
+  is genuinely dead (revoked, user deleted, etc.), it clears its stored
+  session and emits `.signedOut` via `client.auth.onAuthStateChange`, no
+  custom detection needed:
+  ```swift
+  } else if let errorCode, sessionCleanupErrorCodes.contains(errorCode) {
+    await sessionManager.remove()
+    eventEmitter.emit(.signedOut, session: nil)
+    return .sessionMissing
+  }
+  ```
 
-**Conclusion:** we do not need to reimplement expiry math, single-flight
-refresh locking, or a background refresh timer. We need to (1) hydrate the
-SDK's internal session from Keychain on cold launch (today nothing does this,
-so the SDK has no internal session to refresh outside of the same-process
-window right after sign-in/sign-up), and (2) always source our own
-`APIClient` bearer token from the SDK's session getter instead of a static
-Keychain string, and (3) keep Keychain's copy in sync so `resolveUserId` /
-next cold launch still work.
+**Conclusion:** the SDK already does everything a hand-rolled `SessionManager`
+would: persistence, on-demand refresh, single-flight locking, background
+auto-refresh, and an invalidation signal. Introducing a separate
+`SessionManager` type would just re-wrap `SupabaseClient` with no new
+behavior. **`SupabaseClient` (our existing wrapper) is the right and only
+place for this** — extend it with a few small methods and have `APIClient`
+depend on it directly instead of a raw token string.
 
 ## Decisions (confirmed with user)
 
@@ -57,9 +79,12 @@ next cold launch still work.
    which refreshes near/at expiry) and reactive (one retry after an actual
    401, as a safety net for server-side revocation the SDK's local `exp`
    check can't know about).
-2. **Ownership:** a new dedicated `SessionManager` type, not `APIClient`
-   itself and not `SyncCoordinator` alone. Both `APIClient` and
-   `SyncCoordinator`/`Outbox`/`ProfileSync` depend on it for tokens.
+2. **Ownership:** originally scoped as a new dedicated `SessionManager` type.
+   Revised after tracing the SDK: `SupabaseClient` (our existing wrapper
+   around `client.auth`) already owns everything a `SessionManager` would,
+   so it takes on this responsibility directly rather than through a new
+   pass-through type. `APIClient` and `SyncCoordinator`/`Outbox`/`ProfileSync`
+   depend on `SupabaseClient` for tokens.
 3. **Refresh failure handling:** if the refresh token itself is dead
    (revoked/expired), force a full logout: clear Keychain + local profile
    state, reset to the signed-out `AppReducer.State()`, and surface a
@@ -67,73 +92,45 @@ next cold launch still work.
 
 ## Components
 
-### `SupabaseClient` (existing file, additive changes)
+### `SupabaseClient` (existing file, additive changes — no new type)
 
-New methods, each a thin wrapper so `SessionManager` never touches the
+Three small additions, each a thin wrapper so callers never touch
 `Auth`/`Supabase` SDK types directly (keeps external systems routed through
 `Core/` per the architecture rule):
 
 ```swift
-func hydrateSession(accessToken: String, refreshToken: String) async throws -> SessionTokens
+/// A token guaranteed valid at the time of return (the SDK refreshes under
+/// the hood if the persisted session is at/near expiry). Throws
+/// `AuthError.sessionMissing` if there is no session at all.
 func currentAccessToken() async throws -> String
-func forceRefresh() async throws -> SessionTokens
-func onTokenRefreshed(_ handler: @escaping (SessionTokens) -> Void)
-func onSignedOut(_ handler: @escaping () -> Void)
+
+/// One-shot forced refresh, used only after a real 401 from our own backend
+/// (the SDK's on-demand refresh in `currentAccessToken` already covers plain
+/// local expiry; this covers server-side revocation).
+func forceRefresh() async throws -> String
+
+/// Registers a handler fired when the SDK detects the session is genuinely
+/// dead (revoked/deleted, not just locally expired) and clears itself.
+/// Wraps `client.auth.onAuthStateChange`, filtered to `.signedOut`.
+func observeSessionInvalidated(_ handler: @escaping () -> Void)
 ```
 
-`hydrateSession` wraps `client.auth.setSession(accessToken:refreshToken:)`.
 `currentAccessToken` wraps `try await client.auth.session.accessToken`.
-`forceRefresh` wraps `client.auth.refreshSession(refreshToken:)`.
-The two `on*` methods wrap `client.auth.onAuthStateChange` filtering for the
-relevant `AuthChangeEvent` cases.
-
-### `SessionManager` (new, `Core/Network/SessionManager.swift`, actor)
-
-```swift
-actor SessionManager {
-    var onSessionInvalidated: (() -> Void)?
-
-    init(supabase: SupabaseClient, keychain: KeychainClient, logger: AppLogger)
-
-    /// Ensures the SDK has a live internal session from Keychain. No-op if
-    /// already hydrated this process. Call once at app launch / after
-    /// authentication, before any authenticated network call.
-    func hydrateFromKeychainIfNeeded() async
-
-    /// A token guaranteed valid at the time of return (SDK refreshes under
-    /// the hood if near/at expiry). Throws if there is no session or the
-    /// refresh token is dead; fires `onSessionInvalidated` in the latter
-    /// case before throwing.
-    func validAccessToken() async throws -> String
-
-    /// One-shot forced refresh used only after a real 401 from our own
-    /// backend. Throws (and fires `onSessionInvalidated`) if the refresh
-    /// token is dead.
-    func handleUnauthorized() async throws -> String
-}
-```
-
-Internally, on init, calls `supabase.onTokenRefreshed { … }` to persist the
-new `accessToken`/`refreshToken`/`userId` to Keychain (so `resolveUserId` and
-the next cold launch see current tokens), and `supabase.onSignedOut { … }` to
-fire `onSessionInvalidated`.
-
-`hydrateFromKeychainIfNeeded`/`validAccessToken`/`handleUnauthorized` funnel
-through the actor's serialized execution, so concurrent callers (outbox flush
-+ profile pull firing at the same time) can't trigger overlapping SDK calls;
-the actor gives us the "no duplicate refresh in flight" property for free
-without hand-rolled locking.
+`forceRefresh` wraps `try await client.auth.refreshSession().accessToken`.
+No hydration step is needed: the SDK's `KeychainLocalStorage` already
+persists and restores its own session across launches independently of our
+`KeychainClient`.
 
 ### `APIClient` (existing file, signature change)
 
 `fetchProfile`, `patchProfile`, `postProfileComplete` change from
-`accessToken: String` to `sessionManager: SessionManager`. The private
+`accessToken: String` to `supabase: SupabaseClient`. The private
 `request<T,Body>` helper gains a `requiresAuth: Bool` path: when true, it asks
-`sessionManager.validAccessToken()` for the bearer token; if the response is
-specifically HTTP `401`, it calls `sessionManager.handleUnauthorized()` once
-and retries the same request once with the new token. A second `401`
-propagates as a thrown error (by then `onSessionInvalidated` has already
-fired from inside `SessionManager`).
+`supabase.currentAccessToken()` for the bearer token; if the response is
+specifically HTTP `401`, it calls `supabase.forceRefresh()` once and retries
+the same request once with the new token. A second `401` propagates as a
+thrown error (by then the SDK has already emitted `.signedOut` internally,
+see `observeSessionInvalidated` below).
 
 `checkEmailRegistered` is unaffected (no auth required).
 
@@ -148,54 +145,56 @@ Drop the `accessToken` parameter entirely:
   making at all (cheap short-circuit for the fully-signed-out case); no
   longer reads or threads a token value.
 
-Both `Outbox` and `ProfileSync` take a `SessionManager` in their initializer
+Both `Outbox` and `ProfileSync` take `SupabaseClient` in their initializer
 instead of relying on a passed-in token.
 
 ### `AppContainer`
 
-Constructs `SessionManager` after `supabase`/`keychain`/`logger`, wires
-`sessionManager.onSessionInvalidated` to a new `AppContainer`-level closure
-that `WayTwoApp` sets to call the existing `AppView.logout()` cleanup path
-(minus the `signOut()` network call, since the session is already dead;
-still clears Keychain + local DB + resets state and sets the new
-`auth.sessionExpired` error key), and passes `sessionManager` into `api`,
-`outbox`, `profileSync`.
+Wires `supabase.observeSessionInvalidated { … }` once, to a new
+`AppContainer`-level closure that `WayTwoApp` sets to call the existing
+`AppView.logout()` cleanup path (minus the `signOut()` network call, since
+the session is already dead; still clears Keychain + local DB + resets state
+and sets the new `auth.sessionExpired` error key), and passes `supabase`
+into `api`, `outbox`, `profileSync` (already does, for `api`; `outbox` and
+`profileSync` gain the dependency).
 
-### Cold launch (`WayTwoApp.RootContent`)
-
-`routeAfterAuthentication()` calls
-`await appContainer.sessionManager.hydrateFromKeychainIfNeeded()` before
-`syncCoordinator.sessionBecameActive()`, so the SDK's session (and its
-background auto-refresh timer) is live from process start rather than only
-after an in-process sign-in/sign-up call.
+No cold-launch hydration step is needed. The SDK restores its own persisted
+session from its own Keychain entry the first time anything calls
+`client.auth.session`, so the very first `supabase.currentAccessToken()` call
+after launch (inside `syncCoordinator.sessionBecameActive()`) is sufficient.
 
 ## Error handling
 
 - Individual outbox item failures (e.g. a genuine validation error from the
   backend): unchanged, log a warning and retry later.
-- `SessionManager` reports the session as invalid (refresh token dead):
-  `onSessionInvalidated` fires once, clears Keychain + local profile/outbox,
-  resets `AppReducer.State()`, and sets `state.auth.errorKey =
-  "auth.sessionExpired"` so the sign-in screen explains why the user landed
-  there. New string added to `Localizable.xcstrings` in `en` and `uk`.
+- SDK reports the session as invalid (refresh token dead, `.signedOut`
+  event): the `observeSessionInvalidated` handler fires once, clears
+  Keychain + local profile/outbox, resets `AppReducer.State()`, and sets
+  `state.auth.errorKey = "auth.sessionExpired"` so the sign-in screen
+  explains why the user landed there. New string added to
+  `Localizable.xcstrings` in `en` and `uk`.
 - `Outbox.flush()` stops processing remaining items early if
-  `sessionManager.validAccessToken()` throws before the loop starts (no
-  point retrying items one by one against a dead session).
+  `supabase.currentAccessToken()` throws before the loop starts (no point
+  retrying items one by one against a dead session).
 
 ## Testing
 
-- `SessionManager` unit tests against a `TokenProviding`-style seam (a small
-  protocol matching the `SupabaseClient` methods used) covering: valid token
-  passthrough, forced refresh persisting new tokens to Keychain, and
-  `onSessionInvalidated` firing exactly once when the refresh token is dead.
 - `APIClient` 401-retry-once behavior via a stub `URLProtocol` (first
-  response 401, second response 200 after a “refreshed” token is used;
-  confirm the Authorization header changes between the two requests).
+  response 401, second response 200 after a "refreshed" token is used;
+  confirm the Authorization header changes between the two requests). Since
+  `APIClient` now depends on `SupabaseClient` for tokens, this needs a
+  lightweight seam (protocol matching `currentAccessToken`/`forceRefresh`)
+  so the test doesn't require a live Supabase project.
 - `Outbox`/`ProfileSync` tests updated to the new no-token signatures.
+- Manual/integration check: sign in, force the stored session to be treated
+  as expired (or wait past the token lifetime in a test project with a short
+  expiry), trigger a sync, and confirm the request succeeds without a manual
+  sign-out/sign-in cycle.
 
 ## Out of scope
 
-- Building a custom expiry/refresh clock (the SDK's `autoRefreshToken`
-  already covers this).
+- Building a custom expiry/refresh clock, persistence layer, or single-flight
+  locking (the SDK's `KeychainLocalStorage` + `autoRefreshToken` +
+  `sessionManager` already cover all of this).
 - Multi-account / concurrent-session support.
 - Changing the backend's 401 contract.
