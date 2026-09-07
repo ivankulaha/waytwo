@@ -107,7 +107,8 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 |-------|----------|
 | App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true`, which triggers the Post-Auth Routing pass above |
 | Successful sign-in (password or Apple) | `KeychainClient.saveSession(accessToken:refreshToken:userId:)` persists both tokens and the Supabase auth user id |
-| Logout | `SupabaseClient.signOut()` → `KeychainClient.deleteSession()` → `DatabaseClient.clearUserLocalState()` (wipes the profile row and outbox) → `AppReducer.State` reset to default |
+| Logout | `SupabaseClient.signOut()` → `AppContainer.clearLocalSession()` (deletes the Keychain session and wipes the local profile row and outbox) → `AppReducer.State` reset to default |
+| Session invalidated (SDK fires `.signedOut`) | `WayTwoApp.RootContent` receives the event via `supabase.observeSessionInvalidated`; `handleSessionInvalidated()` calls `appContainer.clearLocalSession()`, resets `AppReducer.State`, and sets `appState.auth.errorKey = "auth.sessionExpired"` so the sign-in screen explains why the user landed there |
 | Deep-link password reset | `WayTwoApp.onOpenURL` extracts `code` query param → `SupabaseClient.exchangeCodeForSession(url:)` → `auth.flow = .newPassword` |
 
 Keychain items are stored with `kSecAttrAccessibleAfterFirstUnlock`, allowing background access after device unlock.
@@ -128,9 +129,9 @@ AppContainer
 ├── SupabaseClient     – Supabase SDK wrapper (fully wired, not stubbed)
 ├── APIClient          – REST client for backend profile operations
 ├── NetworkMonitor     – NWPathMonitor wrapper; publishes reachability state; fires `onBecameOnline` on offline→online
-├── Outbox             – local write queue using DatabaseClient; `flush` processes pending rows
-├── ProfileSync        – enqueue-only pushes + `pullProfile`; no inline flush
-└── SyncCoordinator    – sole owner of `Outbox.flush` + post-flush `pullProfile`; triggered on foreground, network restore, session active, auth success
+├── Outbox             – local write queue using DatabaseClient; holds `TokenSource`; `flush` short-circuits early if `currentAccessToken()` throws (dead session)
+├── ProfileSync        – enqueue-only pushes + `pullProfile`; holds `TokenSource`; no inline flush
+└── SyncCoordinator    – sole owner of `Outbox.flush` + post-flush `pullProfile`; checks `keychain.loadSession() != nil` to gate sync (no token threading); triggered on foreground, network restore, session active, auth success
 ```
 
 `AppContainer.live` is a static singleton assembled at app start. Dependencies are injected into features via the container reference passed through the view hierarchy.
@@ -154,8 +155,8 @@ AppContainer
 
 Two distinct clients handle different backends:
 
-- **`SupabaseClient`** — wraps the official `Supabase` Swift SDK. All auth operations are live: `signInWithPassword`, `signUp`, `signOut`, `resetPasswordForEmail`, `updatePassword`, `exchangeCodeForSession`, `signInWithIdToken` (Apple). Logs auth failures at `warn` with structured `AuthError` metadata (no tokens or credentials).
-- **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates).
+- **`SupabaseClient`** — wraps the official `Supabase` Swift SDK. All auth operations are live: `signInWithPassword`, `signUp`, `signOut`, `resetPasswordForEmail`, `updatePassword`, `exchangeCodeForSession`, `signInWithIdToken` (Apple). Logs auth failures at `warn` with structured `AuthError` metadata (no tokens or credentials). Conforms to `TokenSource`: `currentAccessToken()` reads `client.auth.session.accessToken` (the SDK persists its session to its own Keychain entry, independent of `KeychainClient`, and auto-refreshes on read if at/near expiry); `forceRefresh()` calls `client.auth.refreshSession()` and is invoked only after a real 401 from the backend. `observeSessionInvalidated(_:)` subscribes to `client.auth.onAuthStateChange` filtered to `.signedOut`; the registration handle is retained in a class-backed `ListenerBox` for the app's process lifetime.
+- **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates). Takes `tokenSource: TokenSource` on authenticated methods (`fetchProfile`, `patchProfile`, `postProfileComplete`). On HTTP 401 the private `request` helper calls `tokenSource.forceRefresh()` once and retries; a second 401 propagates as a thrown error. Accepts an injectable `URLSession` (defaults to `.shared`) for unit testing.
 
 Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiURL`, `Config.supabaseURL`, `Config.supabasePublishableKey`). Secrets are not embedded in source.
 
@@ -185,7 +186,7 @@ Supported outbox operations:
 
 | Method | Direction | When called |
 |--------|-----------|-------------|
-| `pullProfile(accessToken:)` | Remote → local | After each successful `SyncCoordinator` flush |
+| `pullProfile()` | Remote → local | After each successful `SyncCoordinator` flush; uses the injected `TokenSource` |
 | `pushProfile(patch:)` | Local + enqueue | Profile / onboarding-you save |
 | `pushAvatar(localURI:)` | Enqueue | Avatar selected (when wired) |
 | `enqueueCompleteOnboarding()` | Enqueue | Onboarding step 3 complete |
@@ -255,7 +256,7 @@ Dark-first color system. All values are static `Color` properties:
 
 `SettingsView` is the second main tab (`AppReducer.Tab.settings`). It currently exposes:
 
-- **Logout** — calls `logout()` on `AppView` (see `AppView+Session.swift`), which signs out via Supabase, deletes the Keychain session, and resets root state to `AppReducer.State()`.
+- **Logout** — calls `logout()` on `AppView` (see `AppView+Session.swift`), which signs out via Supabase, calls `container.clearLocalSession()` (shared helper that deletes the Keychain session and wipes local state), and resets root state to `AppReducer.State()`.
 - **Error display** — shows a localized error message if `SettingsReducer.State.errorKey` is set (e.g. if sign-out fails).
 
 ---
@@ -313,6 +314,7 @@ SwiftUI views must use `String(localized:)` or `LocalizedStringKey`; hardcoded d
 | Supabase Auth integration | Done (all methods live, SDK integrated) |
 | Profile sync (push) | Done |
 | Profile sync (pull) | Done (post-onboarding; on-reconnect hook TBD) |
+| Token auto-refresh (401 retry) | Done (`APIClient` retries once with `forceRefresh()`; SDK auto-refreshes on `currentAccessToken()`; SDK-reported session invalidation clears local state and returns user to sign-in) |
 | Offline outbox flush on reconnect | Partial (flush logic present; NetworkMonitor trigger not wired) |
 | Backend-driven onboarding routing | Done (`ProfileCompleteness`; local cache scoped to auth `userId`, wiped on user switch / logout) |
 | Push notifications | Out of scope |

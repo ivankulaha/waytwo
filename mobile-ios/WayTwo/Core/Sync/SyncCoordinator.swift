@@ -41,15 +41,13 @@ final class SyncCoordinator {
             flushLock.unlock()
         }
 
-        let token = keychain.loadSession()?.accessToken
-        logger.info("sync.coordinator", metadata: [
-            "op": "flush",
-            "hasToken": token != nil ? "yes" : "no"
-        ])
-        await outbox.flush(accessToken: token)
-        if let token {
-            await profileSync.pullProfile(accessToken: token)
+        guard keychain.loadSession() != nil else {
+            logger.info("sync.coordinator", metadata: ["op": "skip", "reason": "no_session"])
+            return
         }
+        logger.info("sync.coordinator", metadata: ["op": "flush"])
+        await outbox.flush()
+        await profileSync.pullProfile()
         logger.info("sync.coordinator", metadata: ["op": "flush_done"])
     }
 

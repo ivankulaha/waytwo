@@ -65,6 +65,11 @@ struct WayTwoApp: App {
         var body: some View {
             AppView(state: $appState, container: appContainer)
                 .task {
+                    appContainer.supabase.observeSessionInvalidated {
+                        Task { @MainActor in
+                            handleSessionInvalidated()
+                        }
+                    }
                     if appContainer.keychain.loadSession() != nil {
                         appState.isAuthenticated = true
                     } else {
@@ -146,6 +151,15 @@ struct WayTwoApp: App {
             let hasYouStepFields = !appState.onboarding.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !appState.onboarding.gender.isEmpty
             appState.onboarding.step = hasYouStepFields ? .look : .intro
+        }
+
+        /// Fired when the Supabase SDK reports the session as genuinely dead
+        /// (refresh token revoked/expired). No `signOut()` network call: the
+        /// session is already gone server-side, only local cleanup is needed.
+        private func handleSessionInvalidated() {
+            appContainer.clearLocalSession()
+            appState = AppReducer.State()
+            appState.auth.errorKey = "auth.sessionExpired"
         }
 
         private func handleIncomingURL(_ url: URL) async {

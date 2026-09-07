@@ -122,6 +122,56 @@ final class WayTwoTests: XCTestCase {
         XCTAssertNil(JWTAccessToken.subject("not-a-jwt"))
     }
 
+    // MARK: - APIClient 401 retry
+
+    func testFetchProfile_on401_forcesRefreshAndRetriesOnce() async throws {
+        URLProtocolStub.responses = [
+            (401, Data()),
+            (200, try JSONEncoder().encode(makeRemoteProfile(
+                userId: "user-a",
+                displayName: "Alex",
+                gender: "male",
+                onboardingCompletedAt: nil
+            )))
+        ]
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [URLProtocolStub.self]
+        let apiClient = APIClient(
+            baseURL: URL(string: "https://example.com/api/v1")!,
+            logger: AppLogger(),
+            session: URLSession(configuration: configuration)
+        )
+        let tokenSource = FakeTokenSource(initialToken: "stale-token", refreshedToken: "fresh-token")
+
+        let profile = try await apiClient.fetchProfile(tokenSource: tokenSource)
+
+        XCTAssertEqual(profile.userId, "user-a")
+        XCTAssertEqual(URLProtocolStub.capturedAuthorizationHeaders, ["Bearer stale-token", "Bearer fresh-token"])
+        XCTAssertEqual(tokenSource.forceRefreshCallCount, 1)
+    }
+
+    func testFetchProfile_secondUnauthorized_throws() async {
+        URLProtocolStub.responses = [
+            (401, Data()),
+            (401, Data())
+        ]
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [URLProtocolStub.self]
+        let apiClient = APIClient(
+            baseURL: URL(string: "https://example.com/api/v1")!,
+            logger: AppLogger(),
+            session: URLSession(configuration: configuration)
+        )
+        let tokenSource = FakeTokenSource(initialToken: "stale-token", refreshedToken: "still-invalid-token")
+
+        do {
+            _ = try await apiClient.fetchProfile(tokenSource: tokenSource)
+            XCTFail("Expected the second 401 to throw")
+        } catch {
+            XCTAssertEqual(tokenSource.forceRefreshCallCount, 1)
+        }
+    }
+
     private func makeRemoteProfile(
         userId: String,
         displayName: String?,
@@ -140,4 +190,57 @@ final class WayTwoTests: XCTestCase {
             updatedAt: "2026-01-01T00:00:00Z"
         )
     }
+}
+
+private final class FakeTokenSource: TokenSource {
+    private let initialToken: String
+    private let refreshedToken: String
+    private(set) var forceRefreshCallCount = 0
+
+    init(initialToken: String, refreshedToken: String) {
+        self.initialToken = initialToken
+        self.refreshedToken = refreshedToken
+    }
+
+    func currentAccessToken() async throws -> String {
+        initialToken
+    }
+
+    func forceRefresh() async throws -> String {
+        forceRefreshCallCount += 1
+        return refreshedToken
+    }
+}
+
+/// Stubs `URLProtocol` to serve queued `(statusCode, body)` responses in
+/// order and record each request's `Authorization` header, without hitting
+/// the network.
+private final class URLProtocolStub: URLProtocol {
+    static var responses: [(statusCode: Int, body: Data)] = []
+    static var capturedAuthorizationHeaders: [String] = []
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        if let header = request.value(forHTTPHeaderField: "Authorization") {
+            Self.capturedAuthorizationHeaders.append(header)
+        }
+        guard !Self.responses.isEmpty else {
+            client?.urlProtocol(self, didFailWithError: URLError(.unknown))
+            return
+        }
+        let next = Self.responses.removeFirst()
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: next.statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: nil
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: next.body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

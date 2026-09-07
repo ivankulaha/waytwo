@@ -9,11 +9,13 @@ final class Outbox {
 
     private let database: DatabaseClient
     private let apiClient: APIClient
+    private let tokenSource: TokenSource
     private let logger: AppLogger
 
-    init(database: DatabaseClient, apiClient: APIClient, logger: AppLogger) {
+    init(database: DatabaseClient, apiClient: APIClient, tokenSource: TokenSource, logger: AppLogger) {
         self.database = database
         self.apiClient = apiClient
+        self.tokenSource = tokenSource
         self.logger = logger
     }
 
@@ -24,26 +26,30 @@ final class Outbox {
         database.enqueueOutbox(operation: operation.rawValue, entityId: entityId, payload: serialized)
     }
 
-    func flush(accessToken: String?) async {
-        guard let accessToken else {
+    func flush() async {
+        let items = database.fetchOutbox()
+        guard !items.isEmpty else { return }
+
+        // No point retrying items one by one against a dead session.
+        guard (try? await tokenSource.currentAccessToken()) != nil else {
             logger.info("outbox.flush", metadata: ["op": "skip", "reason": "no_token"])
             return
         }
-        let items = database.fetchOutbox()
+
         logger.info("outbox.flush", metadata: ["op": "start", "count": "\(items.count)"])
         for item in items {
             let payload = parsePayload(item.payload)
             do {
                 if item.operation == Operation.patchProfile.rawValue {
-                    let remote = try await apiClient.patchProfile(accessToken: accessToken, body: payload)
+                    let remote = try await apiClient.patchProfile(tokenSource: tokenSource, body: payload)
                     database.applyRemoteProfile(remote)
                 } else if item.operation == Operation.uploadAvatar.rawValue {
                     if let local = payload["photo_local_uri"] {
-                        let remote = try await apiClient.patchProfile(accessToken: accessToken, body: ["photo_path": local])
+                        let remote = try await apiClient.patchProfile(tokenSource: tokenSource, body: ["photo_path": local])
                         database.applyRemoteProfile(remote)
                     }
                 } else if item.operation == Operation.completeOnboarding.rawValue {
-                    let remote = try await apiClient.postProfileComplete(accessToken: accessToken)
+                    let remote = try await apiClient.postProfileComplete(tokenSource: tokenSource)
                     database.applyRemoteProfile(remote)
                 }
                 database.deleteOutbox(id: item.id)

@@ -382,6 +382,22 @@
         }
       }
     },
+    "auth.sessionExpired" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session expired. Please sign in again."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Термін дії сеансу закінчився. Увійдіть знову."
+          }
+        }
+      }
+    },
     "auth.signInOrCreateSubtitle" : {
       "localizations" : {
         "en" : {

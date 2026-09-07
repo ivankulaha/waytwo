@@ -2,15 +2,24 @@ import Auth
 import Foundation
 import Supabase
 
-struct SupabaseClient {
+struct SupabaseClient: TokenSource {
     struct SessionTokens: Codable {
         let accessToken: String
         let refreshToken: String
         let userId: String
     }
 
+    /// Holds the auth state listener registration. `AuthStateChangeListenerRegistration`
+    /// removes itself on deinit, so this must outlive the `Task` that creates it;
+    /// `SupabaseClient` is a struct held once for the app's process lifetime in
+    /// `AppContainer`, and this class-backed box is shared across its copies.
+    private final class ListenerBox {
+        var registration: (any AuthStateChangeListenerRegistration)?
+    }
+
     private let logger: AppLogger
     private let client: Supabase.SupabaseClient
+    private let listenerBox = ListenerBox()
 
     init(baseURL: URL, publishableKey: String, logger: AppLogger) {
         self.logger = logger
@@ -18,6 +27,31 @@ struct SupabaseClient {
             supabaseURL: baseURL,
             supabaseKey: publishableKey
         )
+    }
+
+    /// A token guaranteed valid at the time of return: the Supabase SDK
+    /// persists its session in its own Keychain storage (independent of
+    /// `KeychainClient`) and refreshes it here if it's at/near expiry.
+    func currentAccessToken() async throws -> String {
+        try await client.auth.session.accessToken
+    }
+
+    /// One-shot forced refresh used only after a real 401 from our backend.
+    func forceRefresh() async throws -> String {
+        try await client.auth.refreshSession().accessToken
+    }
+
+    /// Fires `handler` when the SDK detects the session is genuinely dead
+    /// (revoked/deleted, not just locally expired) and clears itself. Call
+    /// once; the underlying listener is retained for the app's lifetime.
+    func observeSessionInvalidated(_ handler: @escaping () -> Void) {
+        Task {
+            let registration = await client.auth.onAuthStateChange { event, _ in
+                guard event == .signedOut else { return }
+                handler()
+            }
+            listenerBox.registration = registration
+        }
     }
 
     func signInWithPassword(email: String, password: String) async throws -> SessionTokens {

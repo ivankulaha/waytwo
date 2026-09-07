@@ -1,5 +1,18 @@
 import Foundation
 
+/// Supplies a bearer token for authenticated `APIClient` requests. Implemented
+/// by `SupabaseClient`, which sources tokens from the Supabase SDK's own
+/// session (persisted and auto-refreshed independently of `KeychainClient`).
+protocol TokenSource {
+    /// A token guaranteed valid at the time of return; the SDK refreshes
+    /// under the hood if the persisted session is at/near expiry.
+    func currentAccessToken() async throws -> String
+
+    /// One-shot forced refresh, used only after a real 401 from our backend
+    /// (covers server-side revocation the SDK's local expiry check can't see).
+    func forceRefresh() async throws -> String
+}
+
 struct APIClient {
     struct ProfileRow: Codable {
         let userId: String
@@ -27,10 +40,12 @@ struct APIClient {
 
     let baseURL: URL
     private let logger: AppLogger
+    private let session: URLSession
 
-    init(baseURL: URL, logger: AppLogger) {
+    init(baseURL: URL, logger: AppLogger, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.logger = logger
+        self.session = session
     }
 
     func checkEmailRegistered(email: String) async throws -> Bool {
@@ -40,37 +55,57 @@ struct APIClient {
         return response.registered
     }
 
-    func fetchProfile(accessToken: String) async throws -> ProfileRow {
-        try await request(path: "/me/profile", method: "GET", accessToken: accessToken)
+    func fetchProfile(tokenSource: TokenSource) async throws -> ProfileRow {
+        try await request(path: "/me/profile", method: "GET", tokenSource: tokenSource)
     }
 
-    func patchProfile(accessToken: String, body: [String: String]) async throws -> ProfileRow {
-        try await request(path: "/me/profile", method: "PATCH", body: body, accessToken: accessToken)
+    func patchProfile(tokenSource: TokenSource, body: [String: String]) async throws -> ProfileRow {
+        try await request(path: "/me/profile", method: "PATCH", body: body, tokenSource: tokenSource)
     }
 
-    func postProfileComplete(accessToken: String) async throws -> ProfileRow {
-        try await request(path: "/me/profile/complete", method: "POST", accessToken: accessToken)
+    func postProfileComplete(tokenSource: TokenSource) async throws -> ProfileRow {
+        try await request(path: "/me/profile/complete", method: "POST", tokenSource: tokenSource)
     }
 
     private func request<T: Decodable>(
         path: String,
         method: String,
-        accessToken: String? = nil
+        tokenSource: TokenSource? = nil
     ) async throws -> T {
-        try await request(path: path, method: method, body: Optional<String>.none, accessToken: accessToken)
+        try await request(path: path, method: method, body: Optional<String>.none, tokenSource: tokenSource)
     }
 
     private func request<T: Decodable, Body: Encodable>(
         path: String,
         method: String,
         body: Body? = nil,
-        accessToken: String? = nil
+        tokenSource: TokenSource? = nil
     ) async throws -> T {
         logger.debug("api.request.start", metadata: [
             "host": baseURL.host ?? "unknown",
             "method": method,
             "path": path
         ])
+
+        let accessToken = try await tokenSource?.currentAccessToken()
+        let (data, httpResponse) = try await send(path: path, method: method, body: body, accessToken: accessToken)
+
+        if httpResponse.statusCode == 401, let tokenSource {
+            logger.warn("api.request.unauthorized", metadata: ["method": method, "path": path])
+            let refreshedToken = try await tokenSource.forceRefresh()
+            let (retryData, retryResponse) = try await send(path: path, method: method, body: body, accessToken: refreshedToken)
+            return try decode(retryData, response: retryResponse, method: method, path: path)
+        }
+
+        return try decode(data, response: httpResponse, method: method, path: path)
+    }
+
+    private func send<Body: Encodable>(
+        path: String,
+        method: String,
+        body: Body?,
+        accessToken: String?
+    ) async throws -> (Data, HTTPURLResponse) {
         let endpoint = baseURL.appendingPathComponent(path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
         var request = URLRequest(url: endpoint)
         request.httpMethod = method
@@ -82,10 +117,12 @@ struct APIClient {
             request.httpBody = try JSONEncoder().encode(body)
         }
 
-        let data: Data
-        let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            return (data, httpResponse)
         } catch let error as URLError {
             logger.warn("api.request.transport", metadata: [
                 "code": "\(error.errorCode)",
@@ -95,11 +132,14 @@ struct APIClient {
             ])
             throw error
         }
+    }
 
-        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+    private func decode<T: Decodable>(_ data: Data, response: HTTPURLResponse, method: String, path: String) throws -> T {
+        guard (200..<300).contains(response.statusCode) else {
             logger.warn("api.request.failed", metadata: [
                 "method": method,
                 "path": path,
+                "statusCode": "\(response.statusCode)",
                 "status": "failed"
             ])
             throw URLError(.badServerResponse)
@@ -108,7 +148,7 @@ struct APIClient {
         logger.info("api.request.completed", metadata: [
             "method": method,
             "path": path,
-            "statusCode": "\(httpResponse.statusCode)"
+            "statusCode": "\(response.statusCode)"
         ])
 
         let decoded = try JSONDecoder().decode(T.self, from: data)

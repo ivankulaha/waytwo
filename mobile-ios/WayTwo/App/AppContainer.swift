@@ -18,8 +18,8 @@ struct AppContainer {
         let api = APIClient(baseURL: Config.apiURL, logger: logger)
         let supabase = SupabaseClient(baseURL: Config.supabaseURL, publishableKey: Config.supabasePublishableKey, logger: logger)
         let networkMonitor = NetworkMonitor(logger: logger)
-        let outbox = Outbox(database: database, apiClient: api, logger: logger)
-        let profileSync = ProfileSync(database: database, apiClient: api, outbox: outbox, logger: logger)
+        let outbox = Outbox(database: database, apiClient: api, tokenSource: supabase, logger: logger)
+        let profileSync = ProfileSync(database: database, apiClient: api, tokenSource: supabase, outbox: outbox, logger: logger)
         let syncCoordinator = SyncCoordinator(
             outbox: outbox,
             profileSync: profileSync,
@@ -40,4 +40,12 @@ struct AppContainer {
             syncCoordinator: syncCoordinator
         )
     }()
+
+    /// Clears all locally persisted auth/profile state. Shared by the
+    /// explicit sign-out path and the SDK-reported session-invalidated path;
+    /// callers are responsible for resetting `AppReducer.State` afterward.
+    func clearLocalSession() {
+        keychain.deleteSession()
+        database.clearUserLocalState()
+    }
 }

@@ -3,19 +3,21 @@ import Foundation
 final class ProfileSync {
     private let database: DatabaseClient
     private let apiClient: APIClient
+    private let tokenSource: TokenSource
     private let outbox: Outbox
     private let logger: AppLogger
 
-    init(database: DatabaseClient, apiClient: APIClient, outbox: Outbox, logger: AppLogger) {
+    init(database: DatabaseClient, apiClient: APIClient, tokenSource: TokenSource, outbox: Outbox, logger: AppLogger) {
         self.database = database
         self.apiClient = apiClient
+        self.tokenSource = tokenSource
         self.outbox = outbox
         self.logger = logger
     }
 
-    func pullProfile(accessToken: String) async {
+    func pullProfile() async {
         do {
-            let remote = try await apiClient.fetchProfile(accessToken: accessToken)
+            let remote = try await apiClient.fetchProfile(tokenSource: tokenSource)
             database.applyRemoteProfile(remote)
         } catch {
             logger.warn("sync.pull", metadata: ["status": "failed"])
