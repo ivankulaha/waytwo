@@ -5,6 +5,7 @@ extension AppView {
         do {
             try await container.supabase.signOut()
             container.keychain.deleteSession()
+            container.database.clearUserLocalState()
             state = AppReducer.State()
         } catch {
             state.settings.errorKey = "error.title"

@@ -18,12 +18,14 @@ extension AppView {
         Task {
             do {
                 let session = try await container.supabase.signInWithPassword(email: state.auth.email, password: state.auth.password)
-                _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
+                _ = container.keychain.saveSession(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken,
+                    userId: session.userId
+                )
                 state.auth.password = ""
-                state.isAuthenticated = true
-                container.database.ensureProfileRow(userId: "local")
                 state.auth.errorKey = nil
-                Task { await container.syncCoordinator.sessionBecameActive() }
+                state.isAuthenticated = true
             } catch {
                 state.auth.errorKey = "auth.invalidEmailOrPassword"
             }
@@ -33,10 +35,15 @@ extension AppView {
     func signUp() {
         Task {
             do {
-                try await container.supabase.signUp(email: state.auth.email, password: state.auth.password)
+                let session = try await container.supabase.signUp(email: state.auth.email, password: state.auth.password)
+                _ = container.keychain.saveSession(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken,
+                    userId: session.userId
+                )
                 state.auth.password = ""
-                state.auth.flow = .email
                 state.auth.errorKey = nil
+                state.isAuthenticated = true
             } catch {
                 state.auth.errorKey = "auth.couldNotCreateAccount"
             }
@@ -70,10 +77,12 @@ extension AppView {
         Task {
             do {
                 let session = try await container.supabase.signInWithApple(idToken: idToken, nonce: nonce)
-                _ = container.keychain.saveSession(accessToken: session.accessToken, refreshToken: session.refreshToken)
+                _ = container.keychain.saveSession(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken,
+                    userId: session.userId
+                )
                 state.isAuthenticated = true
-                container.database.ensureProfileRow(userId: "local")
-                Task { await container.syncCoordinator.sessionBecameActive() }
             } catch {
                 state.auth.errorKey = "auth.appleSignInError"
             }

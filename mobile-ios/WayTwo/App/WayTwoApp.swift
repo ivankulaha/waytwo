@@ -67,20 +67,13 @@ struct WayTwoApp: App {
                 .task {
                     if appContainer.keychain.loadSession() != nil {
                         appState.isAuthenticated = true
-                        appContainer.database.ensureProfileRow(userId: "local")
-                        if let profile = appContainer.database.getProfile() {
-                            if profile.onboardingCompletedAt != nil {
-                                appState.hasCompletedOnboarding = true
-                            } else {
-                                appState.onboarding.name = profile.displayName ?? ""
-                                appState.onboarding.gender = profile.gender ?? ""
-                                appState.onboarding.dateOfBirth = profile.dateOfBirth ?? ""
-                            }
-                        }
-                        Task { await appContainer.syncCoordinator.sessionBecameActive() }
                     } else {
                         appState.isAuthenticated = false
                     }
+                }
+                .onChange(of: appState.isAuthenticated) { _, isAuthenticated in
+                    guard isAuthenticated else { return }
+                    Task { await routeAfterAuthentication() }
                 }
                 .onChange(of: scenePhase) { _, new in
                     if new == .active {
@@ -92,6 +85,67 @@ struct WayTwoApp: App {
                         await handleIncomingURL(url)
                     }
                 }
+        }
+
+        /// Routes Home vs onboarding from the backend profile, never from a
+        /// leftover local cache. Runs once per sign-in / cold launch: binds
+        /// (or wipes) the local cache to this auth user, then blocks
+        /// `hasCompletedOnboarding` behind a fresh profile pull so a deleted
+        /// and re-registered account can never land on Home from a stale row.
+        private func routeAfterAuthentication() async {
+            let session = appContainer.keychain.loadSession()
+            let userId = resolveUserId(from: session)
+            appContainer.database.prepareProfileForUser(userId)
+            appState.profileRoutingReady = false
+            applyProfileState()
+            await appContainer.syncCoordinator.sessionBecameActive()
+            applyProfileState()
+            appState.profileRoutingReady = true
+        }
+
+        /// Prefers the id already saved with the session (every sign-in
+        /// after this change saves it). Falls back to decoding the access
+        /// token's `sub` claim for sessions saved before user id persistence
+        /// existed, then persists it so future launches don't need to decode
+        /// again. Returns nil only when neither source resolves, in which
+        /// case the local cache is treated as untrusted.
+        private func resolveUserId(from session: KeychainClient.Session?) -> String? {
+            guard let session else { return nil }
+            if let userId = session.userId {
+                return userId
+            }
+            guard let subject = JWTAccessToken.subject(session.accessToken) else {
+                return nil
+            }
+            _ = appContainer.keychain.saveSession(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: subject
+            )
+            return subject
+        }
+
+        /// Single place to derive onboarding routing and draft fields from
+        /// the local profile cache. Call again after a profile pull so a
+        /// fresh backend row always wins over whatever was cached before
+        /// sign-in.
+        private func applyProfileState() {
+            guard let profile = appContainer.database.getProfile() else {
+                appState.hasCompletedOnboarding = false
+                return
+            }
+            appState.hasCompletedOnboarding = ProfileCompleteness.hasFinishedOnboarding(
+                displayName: profile.displayName,
+                gender: profile.gender,
+                onboardingCompletedAt: profile.onboardingCompletedAt
+            )
+            guard !appState.hasCompletedOnboarding else { return }
+            appState.onboarding.name = profile.displayName ?? ""
+            appState.onboarding.gender = profile.gender ?? ""
+            appState.onboarding.dateOfBirth = profile.dateOfBirth ?? ""
+            let hasYouStepFields = !appState.onboarding.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !appState.onboarding.gender.isEmpty
+            appState.onboarding.step = hasYouStepFields ? .look : .intro
         }
 
         private func handleIncomingURL(_ url: URL) async {

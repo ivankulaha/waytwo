@@ -5,6 +5,7 @@ struct KeychainClient {
     struct Session: Codable {
         let accessToken: String
         let refreshToken: String
+        let userId: String?
     }
 
     private let service = "com.ivankulaha.WayTwo"
@@ -63,8 +64,8 @@ struct KeychainClient {
         SecItemDelete(query as CFDictionary)
     }
 
-    func saveSession(accessToken: String, refreshToken: String) -> Bool {
-        let payload = Session(accessToken: accessToken, refreshToken: refreshToken)
+    func saveSession(accessToken: String, refreshToken: String, userId: String?) -> Bool {
+        let payload = Session(accessToken: accessToken, refreshToken: refreshToken, userId: userId)
         guard let data = try? JSONEncoder().encode(payload) else { return false }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

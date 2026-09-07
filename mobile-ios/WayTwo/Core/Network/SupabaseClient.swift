@@ -6,6 +6,7 @@ struct SupabaseClient {
     struct SessionTokens: Codable {
         let accessToken: String
         let refreshToken: String
+        let userId: String
     }
 
     private let logger: AppLogger
@@ -22,16 +23,28 @@ struct SupabaseClient {
     func signInWithPassword(email: String, password: String) async throws -> SessionTokens {
         do {
             let session = try await client.auth.signIn(email: email, password: password)
-            return SessionTokens(accessToken: session.accessToken, refreshToken: session.refreshToken)
+            return SessionTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id.uuidString
+            )
         } catch {
             logSupabaseAuthFailure(op: "supabase.signIn", error: error)
             throw error
         }
     }
 
-    func signUp(email: String, password: String) async throws {
+    func signUp(email: String, password: String) async throws -> SessionTokens {
         do {
-            _ = try await client.auth.signUp(email: email, password: password)
+            let result = try await client.auth.signUp(email: email, password: password)
+            guard let session = result.session else {
+                throw AuthError.sessionMissing
+            }
+            return SessionTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id.uuidString
+            )
         } catch {
             logSupabaseAuthFailure(op: "supabase.signUp", error: error)
             throw error
@@ -70,7 +83,11 @@ struct SupabaseClient {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let code = components?.queryItems?.first(where: { $0.name == "code" })?.value ?? ""
             let session = try await client.auth.exchangeCodeForSession(authCode: code)
-            return SessionTokens(accessToken: session.accessToken, refreshToken: session.refreshToken)
+            return SessionTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id.uuidString
+            )
         } catch {
             logSupabaseAuthFailure(op: "supabase.exchangeCode", error: error)
             throw error
@@ -86,7 +103,11 @@ struct SupabaseClient {
                     nonce: nonce
                 )
             )
-            return SessionTokens(accessToken: session.accessToken, refreshToken: session.refreshToken)
+            return SessionTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                userId: session.user.id.uuidString
+            )
         } catch {
             logSupabaseAuthFailure(op: "supabase.signInApple", error: error)
             throw error
@@ -95,7 +116,11 @@ struct SupabaseClient {
 
     func readSession() async throws -> SessionTokens? {
         let session = try await client.auth.session
-        return SessionTokens(accessToken: session.accessToken, refreshToken: session.refreshToken)
+        return SessionTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            userId: session.user.id.uuidString
+        )
     }
 
     private func logSupabaseAuthFailure(op: String, error: Error) {

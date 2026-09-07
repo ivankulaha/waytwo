@@ -3,6 +3,7 @@ import Foundation
 struct AppReducer {
     struct State {
         var isAuthenticated = false
+        var profileRoutingReady = false
         var hasCompletedOnboarding = false
         var selectedTab: Tab = .home
         var auth = AuthReducer.State()

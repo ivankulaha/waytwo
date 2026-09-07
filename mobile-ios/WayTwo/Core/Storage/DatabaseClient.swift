@@ -83,9 +83,20 @@ final class DatabaseClient {
     let modelContainer: ModelContainer
     private let logger: AppLogger
 
-    init(logger: AppLogger) {
+    init(logger: AppLogger, inMemory: Bool = false) {
         self.logger = logger
         let schema = Schema([ProfileRecord.self, OutboxRecord.self])
+
+        if inMemory {
+            do {
+                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+            } catch {
+                fatalError("Unable to initialize in-memory SwiftData: \(error.localizedDescription)")
+            }
+            return
+        }
+
         let fileManager = FileManager.default
 
         do {
@@ -105,19 +116,59 @@ final class DatabaseClient {
         }
     }
 
-    func ensureProfileRow(userId: String) {
+    /// Binds the singleton profile row to `userId`. If the cached row belongs
+    /// to a different (or unresolved) auth user, the row and any pending
+    /// outbox items are wiped before a blank row is created — a deleted and
+    /// re-registered account (or a leftover pre-migration `"local"` row)
+    /// must never inherit another account's onboarding state.
+    @discardableResult
+    func prepareProfileForUser(_ userId: String?) -> ProfileRecord {
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
-        guard (try? context.fetch(descriptor).first) == nil else { return }
-        let record = ProfileRecord(userId: userId)
+        let existing = try? context.fetch(descriptor).first
+
+        if let existing, let userId, existing.userId == userId {
+            return existing
+        }
+
+        if let existing {
+            context.delete(existing)
+        }
+        deleteAllOutbox(context: context)
+
+        let record = ProfileRecord(userId: userId ?? "unknown")
         context.insert(record)
         try? context.save()
+        logger.info("db.prepareProfile", metadata: ["status": existing == nil ? "created" : "reset"])
+        return record
+    }
+
+    /// Wipes the local profile cache and outbox. Called on logout so the
+    /// next sign-in never sees this account's data.
+    func clearUserLocalState() {
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
+        if let existing = try? context.fetch(descriptor).first {
+            context.delete(existing)
+        }
+        deleteAllOutbox(context: context)
+        try? context.save()
+        logger.info("db.clearUserLocalState", metadata: [:])
+    }
+
+    private func deleteAllOutbox(context: ModelContext) {
+        let descriptor = FetchDescriptor<OutboxRecord>()
+        guard let items = try? context.fetch(descriptor) else { return }
+        for item in items {
+            context.delete(item)
+        }
     }
 
     func applyRemoteProfile(_ remote: APIClient.ProfileRow) {
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
         let record = (try? context.fetch(descriptor).first) ?? ProfileRecord(userId: remote.userId)
+        record.userId = remote.userId
         record.displayName = remote.displayName
         record.gender = remote.gender
         record.dateOfBirth = remote.dateOfBirth

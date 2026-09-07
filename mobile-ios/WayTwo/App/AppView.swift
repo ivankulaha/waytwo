@@ -8,11 +8,20 @@ struct AppView: View {
         Group {
             if !state.isAuthenticated {
                 authFlow
+            } else if !state.profileRoutingReady {
+                routingLoadingView
             } else if !state.hasCompletedOnboarding {
                 onboardingFlow
             } else {
                 mainTabs
             }
+        }
+    }
+    
+    private var routingLoadingView: some View {
+        ZStack {
+            AppColors.surface.ignoresSafeArea()
+            ProgressView()
         }
     }
 

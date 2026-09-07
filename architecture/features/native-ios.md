@@ -31,17 +31,31 @@ mobile-ios/WayTwo/
 └── Features/                 – domain modules
 ```
 
-`WayTwoApp` creates `AppContainer.live` and passes it down. On launch, a `.task` modifier checks `KeychainClient.loadSession()` and sets `isAuthenticated` without requiring a network round-trip. When a session exists, it calls `DatabaseClient.ensureProfileRow` then restores `hasCompletedOnboarding` and onboarding draft fields (`name`, `gender`, `dateOfBirth`) from `ProfileRecord` so in-memory state matches SwiftData after process death. An `.onOpenURL` handler intercepts Supabase password-reset deep links and routes to the `newPassword` auth flow state.
+`WayTwoApp` creates `AppContainer.live` and passes it down. On launch, a `.task` modifier checks `KeychainClient.loadSession()` and sets `isAuthenticated` without requiring a network round-trip. An `.onOpenURL` handler intercepts Supabase password-reset deep links and routes to the `newPassword` auth flow state.
 
-`AppView` reads `AppReducer.State` and renders one of three exclusive branches:
+`AppView` reads `AppReducer.State` and renders one of four exclusive branches:
 
 | Condition | Rendered content |
 |-----------|-----------------|
 | `!isAuthenticated` | Auth flow (`NavigationStack` driven by `AuthReducer.State.flow`) |
+| `!profileRoutingReady` | Loading placeholder (surface background + `ProgressView`) |
 | `!hasCompletedOnboarding` | `NavigationStack` onboarding sequence |
-| both true | `TabView` with Home and Settings tabs |
+| all above false | `TabView` with Home and Settings tabs |
 
-Navigation state lives entirely in `AppReducer.State`; no imperative push calls exist in views.
+Navigation state lives entirely in `AppReducer.State`; no imperative push calls exist in views. `hasCompletedOnboarding` is never written from a leftover local cache — see **Post-Auth Routing** below.
+
+### Post-Auth Routing (backend is the source of truth)
+
+Local SwiftData is a **per-user cache**, not the router. `WayTwoApp.RootContent.routeAfterAuthentication()` runs once per sign-in / cold launch whenever `isAuthenticated` becomes true:
+
+1. Resolve the auth user id: prefer the id saved with the Keychain session (every sign-in since this change saves it via `SupabaseClient.SessionTokens.userId`); fall back to decoding the access token's `sub` claim with `JWTAccessToken.subject(_:)` for sessions saved before user id persistence existed (then re-persists it so future launches skip the decode). Unresolvable → treated as untrusted.
+2. `DatabaseClient.prepareProfileForUser(_:)` binds the singleton `ProfileRecord` to that user id. If the cached row belongs to a different or unresolved user (including a leftover pre-migration `"local"` row), the row and all outbox items are wiped and a blank row is created — a deleted-and-re-registered account can never inherit the previous account's onboarding state.
+3. `profileRoutingReady` is set `false` and `ProfileCompleteness.hasFinishedOnboarding` is applied against the (possibly blank) local row, so `AppView` shows the loading placeholder instead of flashing Home from stale data.
+4. `SyncCoordinator.sessionBecameActive()` flushes the outbox and pulls `GET /api/v1/me/profile`, applying it via `DatabaseClient.applyRemoteProfile` (which also corrects `ProfileRecord.userId`).
+5. `ProfileCompleteness` is applied again from the now-current row; onboarding draft fields (`name`, `gender`, `dateOfBirth`) are restored and `onboarding.step` resumes to `.look` if both required "you" fields are already present, otherwise `.intro`.
+6. `profileRoutingReady = true`.
+
+`ProfileCompleteness.hasFinishedOnboarding(displayName:gender:onboardingCompletedAt:)` is the single completeness rule: both trimmed `displayName` and `gender` non-empty **and** `onboardingCompletedAt` non-nil. A blank remote profile (e.g. after the auth user was deleted and re-registered) always resolves to "not finished".
 
 ---
 
@@ -79,7 +93,7 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 | `.emailSent` | Inline confirmation screen | Manual navigation back to `.email` |
 | `.newPassword` | `NewPasswordView` | Deep-link restore → Supabase `updatePassword` → `.email` |
 
-`AppView` and `AppView+Auth` own async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages. After password or Apple sign-in succeeds, `ensureProfileRow` runs so subsequent `upsertProfileFields` writes are not no-ops.
+`AppView` and `AppView+Auth` own async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages. Sign-in / sign-up / Apple set `isAuthenticated = true` and otherwise only persist the Keychain session — they do not flush or route; `WayTwoApp.RootContent`'s `isAuthenticated` observer owns the single post-auth routing pass described above.
 
 ### Apple Sign-In
 
@@ -91,9 +105,9 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 
 | Event | Behavior |
 |-------|----------|
-| App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true`, ensures profile row, restores onboarding completion and draft profile fields from SwiftData |
-| Successful sign-in (password or Apple) | `KeychainClient.saveSession(accessToken:refreshToken:)` persists both tokens |
-| Logout | `SupabaseClient.signOut()` → `KeychainClient.deleteSession()` → `AppReducer.State` reset to default |
+| App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true`, which triggers the Post-Auth Routing pass above |
+| Successful sign-in (password or Apple) | `KeychainClient.saveSession(accessToken:refreshToken:userId:)` persists both tokens and the Supabase auth user id |
+| Logout | `SupabaseClient.signOut()` → `KeychainClient.deleteSession()` → `DatabaseClient.clearUserLocalState()` (wipes the profile row and outbox) → `AppReducer.State` reset to default |
 | Deep-link password reset | `WayTwoApp.onOpenURL` extracts `code` query param → `SupabaseClient.exchangeCodeForSession(url:)` → `auth.flow = .newPassword` |
 
 Keychain items are stored with `kSecAttrAccessibleAfterFirstUnlock`, allowing background access after device unlock.
@@ -127,12 +141,12 @@ AppContainer
 
 | Store | Type | Purpose |
 |-------|------|---------|
-| `ProfileRecord` | SwiftData `@Model` | Local profile cache (name, email, avatarLocalPath, updatedAt) |
+| `ProfileRecord` | SwiftData `@Model` | Local profile cache for the current auth user (bound to `userId`; name, gender, DOB, photo, color, onboarding fields, `updatedAt`) |
 | `OutboxRecord` | SwiftData `@Model` | Pending write operations queued for remote sync |
 | Keychain (`auth.token`) | `Security.framework` | Legacy single-token slot (backward compatibility) |
-| Keychain (`auth.session`) | `Security.framework` | JSON-encoded `Session` struct with `accessToken` + `refreshToken` |
+| Keychain (`auth.session`) | `Security.framework` | JSON-encoded `Session` struct with `accessToken`, `refreshToken`, and optional `userId` |
 
-`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`ensureProfileRow`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `markOnboardingCompleted`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`, `incrementOutboxAttempts`). Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly.
+`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`prepareProfileForUser`, `clearUserLocalState`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `markOnboardingCompleted`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`, `incrementOutboxAttempts`). `prepareProfileForUser(_:)` is the only way the singleton profile row is created or rebound; it wipes the row and outbox whenever the current auth user id does not match the cached row's `userId`. Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly. An `init(logger:inMemory:)` overload backs an in-memory `ModelContainer` for unit tests; production always uses the default on-disk store.
 
 ---
 
@@ -144,6 +158,8 @@ Two distinct clients handle different backends:
 - **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates).
 
 Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiURL`, `Config.supabaseURL`, `Config.supabasePublishableKey`). Secrets are not embedded in source.
+
+`JWTAccessToken.subject(_:)` (`Core/Network/`) is a dependency-free helper that decodes only the `sub` claim from a JWT payload, used solely to recover the auth user id from a pre-migration Keychain session. It never logs the token or any claim.
 
 ---
 
@@ -187,14 +203,26 @@ Shared design values are defined in `Core/Design/` and must be used by all views
 | Namespace | Values |
 |-----------|--------|
 | `Tokens.Spacing` | `xs` (4), `md` (8), `lg` (12), `xl` (16), `x2l` (20), `x3l` (24), `x4l` (32) |
-| `Tokens.Radius` | `md` (12), `lg` (16), `full` (28) |
-| `Tokens.Size` | `inputHeight` / `buttonHeight` (56), `avatar` (120), `cropCircle` (300), `swatchTap` (48), `swatchInner` (36) |
+| `Tokens.Radius` | `md` (12), `lg` (16), `glassPanel` (26), `full` (28) |
+| `Tokens.FontSize` | `sm` (13), `md` (14), `lg` (16), `xl` (17), `x2l` (24), `avatarInitial` (48) |
+| `Tokens.Size` | `inputHeight` / `buttonHeight` (56), `avatar` (120), `glowRadius` (240), `cropCircle` (300), `swatchTap` (48), `swatchInner` (36) |
+
+### Shared UI components (`Core/UI/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `ProfileAvatarView` | Displays an avatar circle (photo or color-keyed initial/icon) with optional name label below; accepts `colorId`, `photoPath`, `displayName`, `showsName`; used on Home and Onboarding Look |
+| `GlassPanelBackground` | `ViewModifier`; applies `glassEffect(.regular.interactive())` on iOS 26+, frosted fill + stroke fallback on earlier OS; for rounded-rect panels |
+| `GlassCircleBackground` | `ViewModifier`; same adaptive glass treatment for circular shapes |
+| `AvatarCropView` | Full-screen crop: pinch-to-zoom, drag-to-pan, circular mask; confirm renders a clipped JPEG via `AvatarPhotoFileStore.saveJPEG` |
+| `CameraPickerView` | `UIViewControllerRepresentable` over `UIImagePickerController` (`.camera`, front-facing) |
+| `PrimaryButton` | Primary CTA with disabled/pressed states driven by tokens |
+| `AppTextField` / `SecureInputField` | Styled form inputs |
+| `FormScreenScrollContainer` | Scroll container enforcing vertical rhythm for form screens |
 
 ### Profile photo (crop)
 
-- **`Core/UI/AvatarCropView`** — Full-screen crop: pinch-to-zoom, drag-to-pan, circular mask; confirm renders a clipped JPEG via **`AvatarPhotoFileStore.saveJPEG`** to a temp file path consumed by reducers.
-- **`Core/UI/CameraPickerView`** — `UIViewControllerRepresentable` over `UIImagePickerController` (`.camera`, front-facing). `NSCameraUsageDescription` is set in `WayTwo/Info.plist`.
-- **`OnboardingLookView`** / **`ProfileEditView`** — `.confirmationDialog` for **Camera** / **Photo Library** / **Cancel**; library uses SwiftUI **`PhotosPicker`** (no `NSPhotoLibraryUsageDescription`); after selection or capture, **`fullScreenCover(item:)`** presents **`AvatarCropView`**.
+- **`OnboardingLookView`** / **`ProfileEditView`** — Menu for **Camera** / **Photo Library**; library uses SwiftUI **`PhotosPicker`** (no `NSPhotoLibraryUsageDescription`); after selection or capture, **`fullScreenCover(item:)`** presents **`AvatarCropView`**.
 
 ### `AppColors` (semantic colors)
 
@@ -208,15 +236,18 @@ Dark-first color system. All values are static `Color` properties:
 | `buttonBackground` / `buttonText` | Primary CTA |
 | `error` | Inline validation and error states |
 | `homeBackground` / `settingsBackground` | Screen-specific backgrounds |
-| `profileFallback` | Avatar placeholder color |
-| `profilePalette` | Named color swatches for avatar selection (purple, blue, teal, green, orange, pink) |
+| `glassBg` | Translucent panel fill |
+| `glassBorder` | Stroke for glass panels and circles |
+| `avatarGlassBg` | Avatar circle fill when no photo is set; lighter opacity than `glassBg` |
+| `profileFallback` | Avatar placeholder color when `colorId` has no palette match |
+| `profilePalette` | Named color swatches for avatar selection (coral, tangerine, amber, lemon, leaf, mint, sky, azure, purple, magenta, rose, crimson) |
 
 ### `Gradients`
 
 | Name | Type | Usage |
 |------|------|-------|
 | `Gradients.auth` | `RadialGradient` | Auth screen background overlay |
-| `Gradients.homeGlow(color:)` | `RadialGradient` | Dynamic glow behind avatar on Home screen |
+| `Gradients.profileGlowStops(color:)` | `[Gradient.Stop]` | Dynamic glow behind the avatar on Home and Onboarding Look screens |
 
 ---
 
@@ -283,6 +314,7 @@ SwiftUI views must use `String(localized:)` or `LocalizedStringKey`; hardcoded d
 | Profile sync (push) | Done |
 | Profile sync (pull) | Done (post-onboarding; on-reconnect hook TBD) |
 | Offline outbox flush on reconnect | Partial (flush logic present; NetworkMonitor trigger not wired) |
+| Backend-driven onboarding routing | Done (`ProfileCompleteness`; local cache scoped to auth `userId`, wiped on user switch / logout) |
 | Push notifications | Out of scope |
 | Android / cross-platform | Not applicable — iOS only |
 
