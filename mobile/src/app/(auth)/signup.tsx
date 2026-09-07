@@ -45,8 +45,8 @@ export default function AuthSignupScreen() {
       email,
       password: parsed.data,
     });
-    setLoading(false);
     if (signError) {
+      setLoading(false);
       log.warn('signUp failed', { message: signError.message });
       const m = signError.message?.toLowerCase() ?? '';
       const rateLimited =
@@ -57,9 +57,12 @@ export default function AuthSignupScreen() {
       return;
     }
     if (data.session) {
-      router.replace('/');
+      // Keep loading=true; onAuthStateChange will update AuthContext and the
+      // root layout guard will navigate to onboarding/tabs once profile is ready.
+      // Imperatively replacing here races the auth listener and lands on /(auth).
       return;
     }
+    setLoading(false);
     setNeedsEmailConfirmation(true);
   };
 
