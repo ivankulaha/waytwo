@@ -38,29 +38,6 @@ final class ProfileRecord {
     }
 }
 
-@Model
-final class OutboxRecord {
-    var id: UUID
-    var operation: String
-    var entityId: String
-    var payload: String
-    var createdAt: Date
-    var attempts: Int
-    var lastErrorAt: Date?
-    var lastErrorMessage: String?
-
-    init(id: UUID = UUID(), operation: String, entityId: String, payload: String, createdAt: Date = Date()) {
-        self.id = id
-        self.operation = operation
-        self.entityId = entityId
-        self.payload = payload
-        self.createdAt = createdAt
-        attempts = 0
-        lastErrorAt = nil
-        lastErrorMessage = nil
-    }
-}
-
 struct ProfilePatch: Sendable {
     var displayName: String?
     var gender: String?
@@ -85,7 +62,7 @@ final class DatabaseClient {
 
     init(logger: AppLogger, inMemory: Bool = false) {
         self.logger = logger
-        let schema = Schema([ProfileRecord.self, OutboxRecord.self])
+        let schema = Schema([ProfileRecord.self])
 
         if inMemory {
             do {
@@ -109,18 +86,32 @@ final class DatabaseClient {
             let storeDirectoryURL = appSupportURL.appendingPathComponent("WayTwo", isDirectory: true)
             try fileManager.createDirectory(at: storeDirectoryURL, withIntermediateDirectories: true)
             let storeURL = storeDirectoryURL.appendingPathComponent("default.store")
-            let configuration = ModelConfiguration(schema: schema, url: storeURL)
-            modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+            do {
+                let configuration = ModelConfiguration(schema: schema, url: storeURL)
+                modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+            } catch {
+                Self.removeStoreFiles(at: storeURL)
+                logger.warn("db.store.reset", metadata: ["reason": "incompatible_schema"])
+                let configuration = ModelConfiguration(schema: schema, url: storeURL)
+                modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+            }
         } catch {
             fatalError("Unable to initialize SwiftData: \(error.localizedDescription)")
         }
     }
 
+    private static func removeStoreFiles(at storeURL: URL) {
+        let fileManager = FileManager.default
+        for suffix in ["", "-shm", "-wal"] {
+            try? fileManager.removeItem(at: URL(fileURLWithPath: storeURL.path + suffix))
+        }
+    }
+
     /// Binds the singleton profile row to `userId`. If the cached row belongs
-    /// to a different (or unresolved) auth user, the row and any pending
-    /// outbox items are wiped before a blank row is created — a deleted and
-    /// re-registered account (or a leftover pre-migration `"local"` row)
-    /// must never inherit another account's onboarding state.
+    /// to a different (or unresolved) auth user, the row is wiped before a
+    /// blank row is created — a deleted and re-registered account (or a
+    /// leftover pre-migration `"local"` row) must never inherit another
+    /// account's onboarding state.
     @discardableResult
     func prepareProfileForUser(_ userId: String?) -> ProfileRecord {
         let context = modelContainer.mainContext
@@ -134,7 +125,6 @@ final class DatabaseClient {
         if let existing {
             context.delete(existing)
         }
-        deleteAllOutbox(context: context)
 
         let record = ProfileRecord(userId: userId ?? "unknown")
         context.insert(record)
@@ -143,25 +133,16 @@ final class DatabaseClient {
         return record
     }
 
-    /// Wipes the local profile cache and outbox. Called on logout so the
-    /// next sign-in never sees this account's data.
+    /// Wipes the local profile cache. Called on logout so the next sign-in
+    /// never sees this account's data.
     func clearUserLocalState() {
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<ProfileRecord>(predicate: #Predicate { $0.id == 1 })
         if let existing = try? context.fetch(descriptor).first {
             context.delete(existing)
         }
-        deleteAllOutbox(context: context)
         try? context.save()
         logger.info("db.clearUserLocalState", metadata: [:])
-    }
-
-    private func deleteAllOutbox(context: ModelContext) {
-        let descriptor = FetchDescriptor<OutboxRecord>()
-        guard let items = try? context.fetch(descriptor) else { return }
-        for item in items {
-            context.delete(item)
-        }
     }
 
     func applyRemoteProfile(_ remote: APIClient.ProfileRow) {
@@ -219,34 +200,4 @@ final class DatabaseClient {
         try? context.save()
     }
 
-    func incrementOutboxAttempts(id: UUID, message: String) {
-        let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<OutboxRecord>(predicate: #Predicate { $0.id == id })
-        guard let record = try? context.fetch(descriptor).first else { return }
-        record.attempts += 1
-        record.lastErrorAt = Date()
-        record.lastErrorMessage = message
-        try? context.save()
-    }
-
-    func enqueueOutbox(operation: String, entityId: String, payload: String) {
-        let context = modelContainer.mainContext
-        context.insert(OutboxRecord(operation: operation, entityId: entityId, payload: payload))
-        try? context.save()
-        logger.info("outbox.enqueue", metadata: ["operation": operation])
-    }
-
-    func fetchOutbox(limit: Int = 20) -> [OutboxRecord] {
-        let descriptor = FetchDescriptor<OutboxRecord>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
-        return (try? modelContainer.mainContext.fetch(descriptor))?.prefix(limit).map { $0 } ?? []
-    }
-
-    func deleteOutbox(id: UUID) {
-        let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<OutboxRecord>(predicate: #Predicate { $0.id == id })
-        if let record = try? context.fetch(descriptor).first {
-            context.delete(record)
-            try? context.save()
-        }
-    }
 }

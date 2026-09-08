@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingYouView: View {
     @Binding var state: OnboardingReducer.State
+    var isOnline: Bool = true
     let onNext: () -> Void
 
     private var canProceedYouStep: Bool {
@@ -29,7 +30,8 @@ struct OnboardingYouView: View {
                     Spacer().frame(height: Tokens.Spacing.x3l)
                     PrimaryButton(
                         titleKey: "onboarding.you.next",
-                        isDisabled: !canProceedYouStep,
+                        isLoading: state.isLoading,
+                        isDisabled: !canProceedYouStep || !isOnline,
                         action: onNext
                     )
                     if let errorKey = state.errorKey {

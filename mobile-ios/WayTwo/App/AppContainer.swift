@@ -7,7 +7,6 @@ struct AppContainer {
     let supabase: SupabaseClient
     let api: APIClient
     let profileSync: ProfileSync
-    let outbox: Outbox
     let networkMonitor: NetworkMonitor
     let syncCoordinator: SyncCoordinator
 
@@ -18,10 +17,8 @@ struct AppContainer {
         let api = APIClient(baseURL: Config.apiURL, logger: logger)
         let supabase = SupabaseClient(baseURL: Config.supabaseURL, publishableKey: Config.supabasePublishableKey, logger: logger)
         let networkMonitor = NetworkMonitor(logger: logger)
-        let outbox = Outbox(database: database, apiClient: api, tokenSource: supabase, logger: logger)
-        let profileSync = ProfileSync(database: database, apiClient: api, tokenSource: supabase, outbox: outbox, logger: logger)
+        let profileSync = ProfileSync(database: database, apiClient: api, tokenSource: supabase, logger: logger)
         let syncCoordinator = SyncCoordinator(
-            outbox: outbox,
             profileSync: profileSync,
             keychain: keychain,
             networkMonitor: networkMonitor,
@@ -35,7 +32,6 @@ struct AppContainer {
             supabase: supabase,
             api: api,
             profileSync: profileSync,
-            outbox: outbox,
             networkMonitor: networkMonitor,
             syncCoordinator: syncCoordinator
         )

@@ -9,6 +9,7 @@ private struct AvatarCropPayload: Identifiable {
 
 struct OnboardingLookView: View {
     @Binding var state: OnboardingReducer.State
+    var isOnline: Bool = true
     let onFinish: () -> Void
 
     @State private var pickerItem: PhotosPickerItem?
@@ -60,8 +61,18 @@ struct OnboardingLookView: View {
 
                     Spacer(minLength: Tokens.Spacing.xl)
 
-                    PrimaryButton(titleKey: "onboarding.look.finish", action: onFinish)
-                        .frame(width: contentWidth)
+                    PrimaryButton(
+                        titleKey: "onboarding.look.finish",
+                        isLoading: state.isLoading,
+                        isDisabled: !isOnline,
+                        action: onFinish
+                    )
+                    .frame(width: contentWidth)
+                    if let errorKey = state.errorKey {
+                        Text(LocalizedStringKey(errorKey))
+                            .foregroundStyle(AppColors.error)
+                            .padding(.top, Tokens.Spacing.md)
+                    }
 
                     Spacer().frame(height: Tokens.Spacing.x3l)
                 }

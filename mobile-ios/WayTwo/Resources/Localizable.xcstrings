@@ -561,6 +561,38 @@
         }
       }
     },
+    "error.offline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to the internet to continue."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підключіться до інтернету, щоб продовжити."
+          }
+        }
+      }
+    },
+    "error.saveFailed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not save. Try again."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося зберегти. Спробуйте ще раз."
+          }
+        }
+      }
+    },
     "error.title" : {
       "extractionState" : "stale",
       "localizations" : {

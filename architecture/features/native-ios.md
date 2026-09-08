@@ -10,7 +10,7 @@
 
 The `mobile-ios/WayTwo/` target is a native iOS reimplementation of the WayTwo mobile app using SwiftUI and a hand-rolled reducer pattern. It runs in parallel with the existing React Native app in `mobile/` and is not yet the production path. Promotion depends on passing the validation criteria in ADR-0007.
 
-Phase 2 completed the following areas beyond the initial POC: full design token system, Apple Sign-In, complete auth flow state machine, Keychain session restore on launch, profile/outbox sync semantics, Settings tab with logout, and deep-link password reset via universal links.
+Phase 2 completed the following areas beyond the initial POC: full design token system, Apple Sign-In, complete auth flow state machine, Keychain session restore on launch, connectivity-gated profile sync, Settings tab with logout, and deep-link password reset via universal links.
 
 ---
 
@@ -19,7 +19,7 @@ Phase 2 completed the following areas beyond the initial POC: full design token 
 ```
 mobile-ios/WayTwo/
 ├── App/
-│   ├── WayTwoApp.swift       – SwiftUI entry point; `RootContent` with session restore, scene-phase flush, SwiftData profile restore, deep-link handler
+│   ├── WayTwoApp.swift       – SwiftUI entry point; `RootContent` with session restore, scene-phase pull, SwiftData profile restore, deep-link handler
 │   ├── AppContainer.swift    – dependency graph (single struct, live singleton)
 │   ├── AppReducer.swift      – root State, Action, reduce
 │   ├── AppView.swift         – root view; derives active screen from state; navigation + binding helpers
@@ -49,9 +49,9 @@ Navigation state lives entirely in `AppReducer.State`; no imperative push calls 
 Local SwiftData is a **per-user cache**, not the router. `WayTwoApp.RootContent.routeAfterAuthentication()` runs once per sign-in / cold launch whenever `isAuthenticated` becomes true:
 
 1. Resolve the auth user id: prefer the id saved with the Keychain session (every sign-in since this change saves it via `SupabaseClient.SessionTokens.userId`); fall back to decoding the access token's `sub` claim with `JWTAccessToken.subject(_:)` for sessions saved before user id persistence existed (then re-persists it so future launches skip the decode). Unresolvable → treated as untrusted.
-2. `DatabaseClient.prepareProfileForUser(_:)` binds the singleton `ProfileRecord` to that user id. If the cached row belongs to a different or unresolved user (including a leftover pre-migration `"local"` row), the row and all outbox items are wiped and a blank row is created — a deleted-and-re-registered account can never inherit the previous account's onboarding state.
+2. `DatabaseClient.prepareProfileForUser(_:)` binds the singleton `ProfileRecord` to that user id. If the cached row belongs to a different or unresolved user (including a leftover pre-migration `"local"` row), the row is wiped and a blank row is created — a deleted-and-re-registered account can never inherit the previous account's onboarding state.
 3. `profileRoutingReady` is set `false` and `ProfileCompleteness.hasFinishedOnboarding` is applied against the (possibly blank) local row, so `AppView` shows the loading placeholder instead of flashing Home from stale data.
-4. `SyncCoordinator.sessionBecameActive()` flushes the outbox and pulls `GET /api/v1/me/profile`, applying it via `DatabaseClient.applyRemoteProfile` (which also corrects `ProfileRecord.userId`).
+4. `SyncCoordinator.sessionBecameActive()` pulls `GET /api/v1/me/profile`, applying it via `DatabaseClient.applyRemoteProfile` (which also corrects `ProfileRecord.userId`).
 5. `ProfileCompleteness` is applied again from the now-current row; onboarding draft fields (`name`, `gender`, `dateOfBirth`) are restored and `onboarding.step` resumes to `.look` if both required "you" fields are already present, otherwise `.intro`.
 6. `profileRoutingReady = true`.
 
@@ -93,7 +93,7 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 | `.emailSent` | Inline confirmation screen | Manual navigation back to `.email` |
 | `.newPassword` | `NewPasswordView` | Deep-link restore → Supabase `updatePassword` → `.email` |
 
-`AppView` and `AppView+Auth` own async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages. Sign-in / sign-up / Apple set `isAuthenticated = true` and otherwise only persist the Keychain session — they do not flush or route; `WayTwoApp.RootContent`'s `isAuthenticated` observer owns the single post-auth routing pass described above.
+`AppView` and `AppView+Auth` own async side-effect closures (sign-in, sign-up, reset, Apple). State mutations happen after awaiting results; errors surface as `errorKey` localization strings, never raw messages. Sign-in / sign-up / Apple set `isAuthenticated = true` and otherwise only persist the Keychain session — they do not pull or route; `WayTwoApp.RootContent`'s `isAuthenticated` observer owns the single post-auth routing pass described above.
 
 ### Apple Sign-In
 
@@ -107,7 +107,7 @@ Views dispatch mutations by writing to bound state or calling action closures. T
 |-------|----------|
 | App cold launch | `.task` calls `KeychainClient.loadSession()`; non-nil result sets `isAuthenticated = true`, which triggers the Post-Auth Routing pass above |
 | Successful sign-in (password or Apple) | `KeychainClient.saveSession(accessToken:refreshToken:userId:)` persists both tokens and the Supabase auth user id |
-| Logout | `SupabaseClient.signOut()` → `AppContainer.clearLocalSession()` (deletes the Keychain session and wipes the local profile row and outbox) → `AppReducer.State` reset to default |
+| Logout | `SupabaseClient.signOut()` → `AppContainer.clearLocalSession()` (deletes the Keychain session and wipes the local profile row) → `AppReducer.State` reset to default |
 | Session invalidated (SDK fires `.signedOut`) | `WayTwoApp.RootContent` receives the event via `supabase.observeSessionInvalidated`; `handleSessionInvalidated()` calls `appContainer.clearLocalSession()`, resets `AppReducer.State`, and sets `appState.auth.errorKey = "auth.sessionExpired"` so the sign-in screen explains why the user landed there |
 | Deep-link password reset | `WayTwoApp.onOpenURL` extracts `code` query param → `SupabaseClient.exchangeCodeForSession(url:)` → `auth.flow = .newPassword` |
 
@@ -125,13 +125,12 @@ All external system access is routed through typed client structs/classes in `Co
 AppContainer
 ├── AppLogger          – wraps os.Logger; structured key=value metadata; never logs secrets or PII
 ├── KeychainClient     – session token persistence via Security.framework (token + session accounts)
-├── DatabaseClient     – SwiftData container; ProfileRecord + OutboxRecord models
+├── DatabaseClient     – SwiftData container; ProfileRecord cache
 ├── SupabaseClient     – Supabase SDK wrapper (fully wired, not stubbed)
 ├── APIClient          – REST client for backend profile operations
-├── NetworkMonitor     – NWPathMonitor wrapper; publishes reachability state; fires `onBecameOnline` on offline→online
-├── Outbox             – local write queue using DatabaseClient; holds `TokenSource`; `flush` short-circuits early if `currentAccessToken()` throws (dead session)
-├── ProfileSync        – enqueue-only pushes + `pullProfile`; holds `TokenSource`; no inline flush
-└── SyncCoordinator    – sole owner of `Outbox.flush` + post-flush `pullProfile`; checks `keychain.loadSession() != nil` to gate sync (no token threading); triggered on foreground, network restore, session active, auth success
+├── NetworkMonitor     – NWPathMonitor wrapper; publishes reachability state; fires `onBecameOnline` / `onStatusChange`
+├── ProfileSync        – awaited network writes + `pullProfile`; holds `TokenSource`; persists cache only after success
+└── SyncCoordinator    – sole owner of profile pull; checks `keychain.loadSession() != nil` to gate pull; triggered on foreground, network restore, session active, auth success
 ```
 
 `AppContainer.live` is a static singleton assembled at app start. Dependencies are injected into features via the container reference passed through the view hierarchy.
@@ -143,11 +142,10 @@ AppContainer
 | Store | Type | Purpose |
 |-------|------|---------|
 | `ProfileRecord` | SwiftData `@Model` | Local profile cache for the current auth user (bound to `userId`; name, gender, DOB, photo, color, onboarding fields, `updatedAt`) |
-| `OutboxRecord` | SwiftData `@Model` | Pending write operations queued for remote sync |
 | Keychain (`auth.token`) | `Security.framework` | Legacy single-token slot (backward compatibility) |
 | Keychain (`auth.session`) | `Security.framework` | JSON-encoded `Session` struct with `accessToken`, `refreshToken`, and optional `userId` |
 
-`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`prepareProfileForUser`, `clearUserLocalState`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `markOnboardingCompleted`, `enqueueOutbox`, `fetchOutbox`, `deleteOutbox`, `incrementOutboxAttempts`). `prepareProfileForUser(_:)` is the only way the singleton profile row is created or rebound; it wipes the row and outbox whenever the current auth user id does not match the cached row's `userId`. Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the outbox boundary. Callers never access the model context directly. An `init(logger:inMemory:)` overload backs an in-memory `ModelContainer` for unit tests; production always uses the default on-disk store.
+`DatabaseClient` owns the `ModelContainer` and exposes typed methods (`prepareProfileForUser`, `clearUserLocalState`, `upsertProfileFields(ProfilePatch)`, `getProfile`, `applyRemoteProfile`, `markOnboardingCompleted`). `prepareProfileForUser(_:)` is the only way the singleton profile row is created or rebound; it wipes the row whenever the current auth user id does not match the cached row's `userId`. If the on-disk store cannot open after the schema drop (the old `OutboxRecord` model), the store files are deleted and recreated. Profile field updates use `ProfilePatch` (typed properties) with `asDictionary()` only at the HTTP body boundary. Callers never access the model context directly. An `init(logger:inMemory:)` overload backs an in-memory `ModelContainer` for unit tests; production always uses the default on-disk store.
 
 ---
 
@@ -156,7 +154,7 @@ AppContainer
 Two distinct clients handle different backends:
 
 - **`SupabaseClient`** — wraps the official `Supabase` Swift SDK. All auth operations are live: `signInWithPassword`, `signUp`, `signOut`, `resetPasswordForEmail`, `updatePassword`, `exchangeCodeForSession`, `signInWithIdToken` (Apple). Logs auth failures at `warn` with structured `AuthError` metadata (no tokens or credentials). Conforms to `TokenSource`: `currentAccessToken()` reads `client.auth.session.accessToken` (the SDK persists its session to its own Keychain entry, independent of `KeychainClient`, and auto-refreshes on read if at/near expiry); `forceRefresh()` calls `client.auth.refreshSession()` and is invoked only after a real 401 from the backend. `observeSessionInvalidated(_:)` subscribes to `client.auth.onAuthStateChange` filtered to `.signedOut`; the registration handle is retained in a class-backed `ListenerBox` for the app's process lifetime.
-- **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates). Takes `tokenSource: TokenSource` on authenticated methods (`fetchProfile`, `patchProfile`, `postProfileComplete`). On HTTP 401 the private `request` helper calls `tokenSource.forceRefresh()` once and retries; a second 401 propagates as a thrown error. Accepts an injectable `URLSession` (defaults to `.shared`) for unit testing.
+- **`APIClient`** — communicates with the WayTwo backend REST API (profile fetch and updates, plus unauthenticated `checkEmailRegistered`). Takes `tokenSource: TokenSource` on authenticated methods (`fetchProfile`, `patchProfile`, `postProfileComplete`). Every request uses a shared retry policy: up to 3 attempts with 0.5s / 1s / 2s delays on transport errors and 5xx. 4xx is not retried. On HTTP 401 the private `request` helper calls `tokenSource.forceRefresh()` once and retries that attempt; a second 401 propagates as a thrown error. Accepts an injectable `URLSession` (defaults to `.shared`) for unit testing.
 
 Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiURL`, `Config.supabaseURL`, `Config.supabasePublishableKey`). Secrets are not embedded in source.
 
@@ -166,32 +164,25 @@ Both clients are initialized from `Config.xcconfig`-backed values (`Config.apiUR
 
 ## Sync
 
-### Outbox pattern
+### Connectivity-gated writes
 
-Profile mutations are written locally first, then enqueued in `OutboxRecord` with a typed operation. **`SyncCoordinator` is the only component that calls `Outbox.flush`** — after app foreground (`scenePhase == .active`), when the network transitions from offline to online, after sign-in / Apple SSO, after restoring a session on cold launch, and after onboarding enqueue steps (via `Task { await syncCoordinator.sessionBecameActive() }`). `Outbox.flush` deletes rows on success; on per-item failure it increments `attempts` and continues with the next item (no head-of-line blocking).
+Profile mutations are sent to the backend immediately. There is no durable write queue. Onboarding Continue / Finish are disabled while `NetworkMonitor` reports offline. `ProfileSync` awaits `APIClient`, which applies the shared retry policy, and applies the remote profile only after success. Killing the app during a write drops that write.
 
-`markOnboardingCompleted()` writes `onboardingCompletedAt` locally when the user finishes onboarding so a force-quit before the server ACK does not send them back through onboarding.
+`SyncCoordinator` only pulls — after app foreground (`scenePhase == .active`), when the network transitions from offline to online, after sign-in / Apple SSO, and after restoring a session on cold launch.
 
-Supported outbox operations:
-
-| Operation | Trigger |
-|-----------|---------|
-| `.patchProfile` | Any profile field edit |
-| `.uploadAvatar` | Avatar photo selected |
-| `.completeOnboarding` | User finishes onboarding step 3 |
+`markOnboardingCompleted()` writes `onboardingCompletedAt` locally after `POST /me/profile/complete` succeeds so a later pull failure does not send the user back through onboarding.
 
 ### ProfileSync
 
-`ProfileSync` handles enqueue-only pushes and explicit pulls:
+`ProfileSync` performs awaited writes and explicit pulls:
 
 | Method | Direction | When called |
 |--------|-----------|-------------|
-| `pullProfile()` | Remote → local | After each successful `SyncCoordinator` flush; uses the injected `TokenSource` |
-| `pushProfile(patch:)` | Local + enqueue | Profile / onboarding-you save |
-| `pushAvatar(localURI:)` | Enqueue | Avatar selected (when wired) |
-| `enqueueCompleteOnboarding()` | Enqueue | Onboarding step 3 complete |
+| `pullProfile()` | Remote → local | `SyncCoordinator` session / foreground / online |
+| `pushProfile(patch:)` | Network then local | Onboarding You save |
+| `completeOnboarding(look:)` | Network then local | Onboarding Look finish (PATCH look fields, then POST complete) |
 
-Write-path methods never `await Outbox.flush`. Failures during flush are logged as warnings and do not crash the app.
+Write-path methods return `Result<Void, ProfileSyncError>`. After `APIClient` retries are exhausted, failures map to `error.saveFailed` and do not persist the patch.
 
 ---
 
@@ -288,7 +279,7 @@ SwiftUI views must use `String(localized:)` or `LocalizedStringKey`; hardcoded d
 
 | Level | When |
 |-------|------|
-| `debug` | Internal transitions (outbox enqueue, SwiftData writes) |
+| `debug` | Internal transitions (SwiftData writes, network status) |
 | `info` | Action boundaries (sync success, profile save, sign-in ok) |
 | `warn` | Retryable or recoverable failures (sync pull failed, avatar missing) |
 | `error` | User-visible or fatal failures |
@@ -313,9 +304,9 @@ SwiftUI views must use `String(localized:)` or `LocalizedStringKey`; hardcoded d
 | Design token system | Done (Tokens, AppColors, Gradients) |
 | Supabase Auth integration | Done (all methods live, SDK integrated) |
 | Profile sync (push) | Done |
-| Profile sync (pull) | Done (post-onboarding; on-reconnect hook TBD) |
+| Profile sync (pull) | Done (post-auth, foreground, and on-reconnect via `NetworkMonitor.onBecameOnline`) |
 | Token auto-refresh (401 retry) | Done (`APIClient` retries once with `forceRefresh()`; SDK auto-refreshes on `currentAccessToken()`; SDK-reported session invalidation clears local state and returns user to sign-in) |
-| Offline outbox flush on reconnect | Partial (flush logic present; NetworkMonitor trigger not wired) |
+| Offline write queue | Removed (connectivity-gated writes; in-flight retry only) |
 | Backend-driven onboarding routing | Done (`ProfileCompleteness`; local cache scoped to auth `userId`, wiped on user switch / logout) |
 | Push notifications | Out of scope |
 | Android / cross-platform | Not applicable — iOS only |

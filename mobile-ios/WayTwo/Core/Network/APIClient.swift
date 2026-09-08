@@ -13,6 +13,11 @@ protocol TokenSource {
     func forceRefresh() async throws -> String
 }
 
+enum APIError: Error, Equatable {
+    case http(statusCode: Int)
+    case decoding
+}
+
 struct APIClient {
     struct ProfileRow: Codable {
         let userId: String
@@ -41,11 +46,21 @@ struct APIClient {
     let baseURL: URL
     private let logger: AppLogger
     private let session: URLSession
+    private let retryDelays: [TimeInterval]
+    private let maxAttempts: Int
 
-    init(baseURL: URL, logger: AppLogger, session: URLSession = .shared) {
+    init(
+        baseURL: URL,
+        logger: AppLogger,
+        session: URLSession = .shared,
+        retryDelays: [TimeInterval] = [0.5, 1.0, 2.0],
+        maxAttempts: Int = 3
+    ) {
         self.baseURL = baseURL
         self.logger = logger
         self.session = session
+        self.retryDelays = retryDelays
+        self.maxAttempts = maxAttempts
     }
 
     func checkEmailRegistered(email: String) async throws -> Bool {
@@ -81,6 +96,39 @@ struct APIClient {
         body: Body? = nil,
         tokenSource: TokenSource? = nil
     ) async throws -> T {
+        var attempt = 1
+        while true {
+            do {
+                return try await performRequest(path: path, method: method, body: body, tokenSource: tokenSource)
+            } catch {
+                let canRetry = Self.isRetryable(error) && attempt < maxAttempts
+                if !canRetry {
+                    throw error
+                }
+                logger.warn("api.request.retry", metadata: [
+                    "attempt": "\(attempt)",
+                    "method": method,
+                    "path": path,
+                    "status": "retry"
+                ])
+                let delayIndex = attempt - 1
+                if delayIndex < retryDelays.count {
+                    let delay = retryDelays[delayIndex]
+                    if delay > 0 {
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    }
+                }
+                attempt += 1
+            }
+        }
+    }
+
+    private func performRequest<T: Decodable, Body: Encodable>(
+        path: String,
+        method: String,
+        body: Body?,
+        tokenSource: TokenSource?
+    ) async throws -> T {
         logger.debug("api.request.start", metadata: [
             "host": baseURL.host ?? "unknown",
             "method": method,
@@ -98,6 +146,14 @@ struct APIClient {
         }
 
         return try decode(data, response: httpResponse, method: method, path: path)
+    }
+
+    private static func isRetryable(_ error: Error) -> Bool {
+        if error is URLError { return true }
+        if let apiError = error as? APIError, case .http(let statusCode) = apiError, statusCode >= 500 {
+            return true
+        }
+        return false
     }
 
     private func send<Body: Encodable>(
@@ -142,7 +198,7 @@ struct APIClient {
                 "statusCode": "\(response.statusCode)",
                 "status": "failed"
             ])
-            throw URLError(.badServerResponse)
+            throw APIError.http(statusCode: response.statusCode)
         }
 
         logger.info("api.request.completed", metadata: [
@@ -151,8 +207,13 @@ struct APIClient {
             "statusCode": "\(response.statusCode)"
         ])
 
-        let decoded = try JSONDecoder().decode(T.self, from: data)
-        logger.debug("api.decode.success", metadata: ["method": method, "path": path])
-        return decoded
+        do {
+            let decoded = try JSONDecoder().decode(T.self, from: data)
+            logger.debug("api.decode.success", metadata: ["method": method, "path": path])
+            return decoded
+        } catch {
+            logger.warn("api.decode.failed", metadata: ["method": method, "path": path, "status": "failed"])
+            throw APIError.decoding
+        }
     }
 }

@@ -17,7 +17,7 @@ tracing the code, not guessed):
 - On the iOS side, `KeychainClient.Session` stores a raw `accessToken` +
   `refreshToken` string pair. `SyncCoordinator.sessionBecameActive()` reads
   `keychain.loadSession()?.accessToken` and passes that static string straight
-  into `Outbox`/`ProfileSync`/`APIClient`.
+  into `ProfileSync`/`APIClient`.
 - Nothing in the codebase calls `refreshSession`, `setSession`, or checks
   token expiry (confirmed via full-repo grep). Supabase access tokens expire
   after ~1 hour by default, so any session older than that fails every
@@ -83,7 +83,7 @@ depend on it directly instead of a raw token string.
    Revised after tracing the SDK: `SupabaseClient` (our existing wrapper
    around `client.auth`) already owns everything a `SessionManager` would,
    so it takes on this responsibility directly rather than through a new
-   pass-through type. `APIClient` and `SyncCoordinator`/`Outbox`/`ProfileSync`
+   pass-through type. `APIClient` and `SyncCoordinator`/`ProfileSync`
    depend on `SupabaseClient` for tokens.
 3. **Refresh failure handling:** if the refresh token itself is dead
    (revoked/expired), force a full logout: clear Keychain + local profile
@@ -134,18 +134,17 @@ see `observeSessionInvalidated` below).
 
 `checkEmailRegistered` is unaffected (no auth required).
 
-### `Outbox` / `ProfileSync` / `SyncCoordinator`
+### `ProfileSync` / `SyncCoordinator`
 
 Drop the `accessToken` parameter entirely:
 
-- `Outbox.flush() async` (was `flush(accessToken: String?)`)
 - `ProfileSync.pullProfile() async` (was `pullProfile(accessToken: String)`)
 - `SyncCoordinator.sessionBecameActive()`: only checks
-  `keychain.loadSession() != nil` to decide whether a sync attempt is worth
+  `keychain.loadSession() != nil` to decide whether a pull is worth
   making at all (cheap short-circuit for the fully-signed-out case); no
   longer reads or threads a token value.
 
-Both `Outbox` and `ProfileSync` take `SupabaseClient` in their initializer
+`ProfileSync` takes `SupabaseClient` in its initializer
 instead of relying on a passed-in token.
 
 ### `AppContainer`
@@ -155,8 +154,7 @@ Wires `supabase.observeSessionInvalidated { … }` once, to a new
 `AppView.logout()` cleanup path (minus the `signOut()` network call, since
 the session is already dead; still clears Keychain + local DB + resets state
 and sets the new `auth.sessionExpired` error key), and passes `supabase`
-into `api`, `outbox`, `profileSync` (already does, for `api`; `outbox` and
-`profileSync` gain the dependency).
+into `api` and `profileSync` (`profileSync` gains the dependency).
 
 No cold-launch hydration step is needed. The SDK restores its own persisted
 session from its own Keychain entry the first time anything calls
@@ -165,17 +163,15 @@ after launch (inside `syncCoordinator.sessionBecameActive()`) is sufficient.
 
 ## Error handling
 
-- Individual outbox item failures (e.g. a genuine validation error from the
-  backend): unchanged, log a warning and retry later.
+- Individual `ProfileSync` write failures (e.g. a genuine validation error
+  from the backend): after in-flight retries are exhausted, map to
+  `error.saveFailed` and do not persist the patch.
 - SDK reports the session as invalid (refresh token dead, `.signedOut`
   event): the `observeSessionInvalidated` handler fires once, clears
-  Keychain + local profile/outbox, resets `AppReducer.State()`, and sets
+  Keychain + local profile, resets `AppReducer.State()`, and sets
   `state.auth.errorKey = "auth.sessionExpired"` so the sign-in screen
   explains why the user landed there. New string added to
   `Localizable.xcstrings` in `en` and `uk`.
-- `Outbox.flush()` stops processing remaining items early if
-  `supabase.currentAccessToken()` throws before the loop starts (no point
-  retrying items one by one against a dead session).
 
 ## Testing
 
@@ -185,7 +181,7 @@ after launch (inside `syncCoordinator.sessionBecameActive()`) is sufficient.
   `APIClient` now depends on `SupabaseClient` for tokens, this needs a
   lightweight seam (protocol matching `currentAccessToken`/`forceRefresh`)
   so the test doesn't require a live Supabase project.
-- `Outbox`/`ProfileSync` tests updated to the new no-token signatures.
+- `ProfileSync` tests updated to the new no-token signatures.
 - Manual/integration check: sign in, force the stored session to be treated
   as expired (or wait past the token lifetime in a test project with a short
   expiry), trigger a sync, and confirm the request succeeds without a manual

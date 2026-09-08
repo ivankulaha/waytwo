@@ -65,6 +65,12 @@ struct WayTwoApp: App {
         var body: some View {
             AppView(state: $appState, container: appContainer)
                 .task {
+                    appState.isOnline = appContainer.networkMonitor.status == .online
+                    appContainer.networkMonitor.onStatusChange = { status in
+                        Task { @MainActor in
+                            appState.isOnline = status == .online
+                        }
+                    }
                     appContainer.supabase.observeSessionInvalidated {
                         Task { @MainActor in
                             handleSessionInvalidated()

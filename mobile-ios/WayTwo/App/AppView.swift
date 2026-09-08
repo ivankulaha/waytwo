@@ -172,8 +172,8 @@ struct AppView: View {
                 get: { state.onboarding.step == .you || state.onboarding.step == .look },
                 set: { if !$0 { state.onboarding.step = .intro } }
             )) {
-                OnboardingYouView(state: $state.onboarding) {
-                    saveOnboardingYouStep()
+                OnboardingYouView(state: $state.onboarding, isOnline: state.isOnline) {
+                    Task { await saveOnboardingYouStep() }
                 }
                 .navigationTitle("onboarding.you.title")
                 .hidesNavigationBarTitle()
@@ -181,8 +181,8 @@ struct AppView: View {
                     get: { state.onboarding.step == .look },
                     set: { if !$0 { state.onboarding.step = .you } }
                 )) {
-                    OnboardingLookView(state: $state.onboarding) {
-                        completeOnboarding()
+                    OnboardingLookView(state: $state.onboarding, isOnline: state.isOnline) {
+                        Task { await completeOnboarding() }
                     }
                     .navigationTitle("onboarding.look.title")
                     .hidesNavigationBarTitle()

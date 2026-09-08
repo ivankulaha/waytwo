@@ -1,22 +1,19 @@
 import Foundation
 
 final class SyncCoordinator {
-    private let outbox: Outbox
     private let profileSync: ProfileSync
     private let keychain: KeychainClient
     private let networkMonitor: NetworkMonitor
     private let logger: AppLogger
-    private let flushLock = NSLock()
-    private var flushInProgress = false
+    private let pullLock = NSLock()
+    private var pullInProgress = false
 
     init(
-        outbox: Outbox,
         profileSync: ProfileSync,
         keychain: KeychainClient,
         networkMonitor: NetworkMonitor,
         logger: AppLogger
     ) {
-        self.outbox = outbox
         self.profileSync = profileSync
         self.keychain = keychain
         self.networkMonitor = networkMonitor
@@ -28,27 +25,26 @@ final class SyncCoordinator {
     }
 
     func sessionBecameActive() async {
-        flushLock.lock()
-        if flushInProgress {
-            flushLock.unlock()
+        pullLock.lock()
+        if pullInProgress {
+            pullLock.unlock()
             return
         }
-        flushInProgress = true
-        flushLock.unlock()
+        pullInProgress = true
+        pullLock.unlock()
         defer {
-            flushLock.lock()
-            flushInProgress = false
-            flushLock.unlock()
+            pullLock.lock()
+            pullInProgress = false
+            pullLock.unlock()
         }
 
         guard keychain.loadSession() != nil else {
             logger.info("sync.coordinator", metadata: ["op": "skip", "reason": "no_session"])
             return
         }
-        logger.info("sync.coordinator", metadata: ["op": "flush"])
-        await outbox.flush()
+        logger.info("sync.coordinator", metadata: ["op": "pull"])
         await profileSync.pullProfile()
-        logger.info("sync.coordinator", metadata: ["op": "flush_done"])
+        logger.info("sync.coordinator", metadata: ["op": "pull_done"])
     }
 
     func appBecameForeground() {

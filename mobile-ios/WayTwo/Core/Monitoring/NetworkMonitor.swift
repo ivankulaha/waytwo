@@ -13,18 +13,24 @@ final class NetworkMonitor {
 
     private(set) var status: Status = .offline
     var onBecameOnline: (() -> Void)?
+    var onStatusChange: ((Status) -> Void)?
 
     init(logger: AppLogger) {
         self.logger = logger
         monitor.pathUpdateHandler = { [weak self] path in
-            guard let self else { return }
             let newStatus: Status = path.status == .satisfied ? .online : .offline
-            let previous = self.status
-            if newStatus == .online && previous == .offline {
-                self.onBecameOnline?()
+            DispatchQueue.main.async {
+                guard let self else { return }
+                let previous = self.status
+                self.status = newStatus
+                if newStatus != previous {
+                    self.onStatusChange?(newStatus)
+                }
+                if newStatus == .online && previous == .offline {
+                    self.onBecameOnline?()
+                }
+                self.logger.debug("network.status", metadata: ["value": self.status == .online ? "online" : "offline"])
             }
-            self.status = newStatus
-            self.logger.debug("network.status", metadata: ["value": self.status == .online ? "online" : "offline"])
         }
         monitor.start(queue: queue)
     }
